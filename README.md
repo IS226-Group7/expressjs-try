@@ -39,3 +39,46 @@ POST /api/auth/register: Send a JSON body with a username/password. Check MariaD
 POST /api/auth/login: See if you get a JWT token back.
 POST /api/assets: Try adding a device while sending the Token in the Authorization header.
 GET /api/scan/TAG-001: Verify that the JSON response includes the Location and User objects (The "Eager Loading" we set up).
+
+5. Install MariaDB in the Codespace
+By default, Codespaces runs on Linux (Ubuntu).
+
+Update the package manager:
+sudo apt-get update
+
+Install MariaDB:
+sudo apt-get install mariadb-server -y
+
+Start the service:
+sudo service mariadb start
+
+Secure it (press Enter for no password initially):
+sudo mysql -u root
+
+Inside the MariaDB prompt, run:
+SQL
+CREATE DATABASE itam_db;
+CREATE USER 'itam_user'@'localhost' IDENTIFIED BY 'password123';
+GRANT ALL PRIVILEGES ON itam_db.* TO 'itam_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+
+6. Initialize the Node.js Project
+Back in the terminal, set up your Express environment:
+npm init -y
+
+Install dependencies:
+npm install express sequelize mysql2 bcrypt jsonwebtoken dotenv qrcode
+
+Create your folder structure:
+mkdir config models routes
+
+Create an .env file in the root:
+Code snippet
+PORT=3000
+DB_NAME=itam_db
+DB_USER=itam_user
+DB_PASS=password123
+DB_HOST=localhost
+JWT_SECRET=super-secret-key
+
