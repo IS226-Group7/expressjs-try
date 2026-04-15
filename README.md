@@ -68,7 +68,7 @@ Back in the terminal, set up your Express environment:
 npm init -y
 
 Install dependencies:
-npm install express sequelize mysql2 bcrypt jsonwebtoken dotenv qrcode
+npm install express sequelize mysql2 mariadb bcrypt jsonwebtoken dotenv qrcode
 
 Create your folder structure:
 mkdir config models routes
