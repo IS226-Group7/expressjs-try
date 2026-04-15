@@ -22,9 +22,22 @@ app.get('/test-qr/:tag', async (req, res) => {
   res.send(`<img src="${qr}">`);
 });
 
+
+import User from './models/User.js';
+import Asset from './models/Asset.js';
+import Location from './models/Location.js';
+
 const PORT = 3000;
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Relationships
+  Location.hasMany(Asset);
+  Asset.belongsTo(Location);
+
+  User.hasMany(Asset);
+  Asset.belongsTo(User);
+
   // Sync database (creates tables)
   await sequelize.sync({ alter: true });
   console.log("Database models synced.");
@@ -37,7 +50,6 @@ app.get('/', (req, res) => {
 
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import User from './models/User.js'; // Ensure you created this model file
 
 // --- REGISTER ROUTE ---
 app.post('/register', async (req, res) => {
@@ -68,4 +80,27 @@ app.post('/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Add a new Asset
+app.post('/assets', async (req, res) => {
+  const asset = await Asset.create(req.body);
+  res.json(asset);
+});
+
+// Add a new Location
+app.post('/locations', async (req, res) => {
+  const loc = await Location.create(req.body);
+  res.json(loc);
+});
+
+// The "QR Scan" Route (Get Asset + Location + User)
+app.get('/scan/:tag', async (req, res) => {
+  const asset = await Asset.findOne({
+    where: { assetTag: req.params.tag },
+    include: [User, Location] // This is the "Eager Loading" magic
+  });
+  
+  if (!asset) return res.status(404).send("Asset not found");
+  res.json(asset);
 });
