@@ -1,0 +1,31 @@
+{
+  "name": "expressjs-try",
+  "version": "1.0.0",
+  "description": "Implement in Express JS",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IS226-Group7/expressjs-try.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/IS226-Group7/expressjs-try/issues"
+  },
+  "homepage": "https://github.com/IS226-Group7/expressjs-try#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mariadb": "^3.5.2",
+    "mysql2": "^3.22.0",
+    "qrcode": "^1.5.4",
+    "sequelize": "^6.37.8"
+  }
+}
