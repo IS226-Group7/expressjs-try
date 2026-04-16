@@ -26,6 +26,7 @@ app.get('/test-qr/:tag', async (req, res) => {
 import User from './models/User.js';
 import Asset from './models/Asset.js';
 import Location from './models/Location.js';
+import AssetHistory from './models/AssetHistory.js';
 
 const PORT = 3000;
 app.listen(PORT, async () => {
@@ -37,6 +38,10 @@ app.listen(PORT, async () => {
 
   User.hasMany(Asset);
   Asset.belongsTo(User);
+
+  // An asset has many history entries
+  Asset.hasMany(AssetHistory, { foreignKey: 'AssetId' });
+  AssetHistory.belongsTo(Asset, { foreignKey: 'AssetId' });
 
   // Sync database (creates tables)
   await sequelize.sync({ alter: true });
@@ -94,13 +99,47 @@ app.post('/locations', async (req, res) => {
   res.json(loc);
 });
 
-// The "QR Scan" Route (Get Asset + Location + User)
+
+
+// update asset history
+app.put('/assets/:tag/status', async (req, res) => {
+  const { newStatus, notes, techName } = req.body;
+
+  const asset = await Asset.findOne({ where: { assetTag: req.params.tag } });
+  if (!asset) return res.status(404).send("Asset not found");
+
+  const oldStatus = asset.status;
+
+  // 1. Update the Asset
+  asset.status = newStatus;
+  await asset.save();
+
+  // 2. Create the History Record
+  await AssetHistory.create({
+    AssetId: asset.id,
+    action: 'STATUS_CHANGE',
+    fromStatus: oldStatus,
+    toStatus: newStatus,
+    notes: notes,
+    changedBy: techName
+  });
+
+  res.json({ message: "Status updated and logged", asset });
+});
+
+//view asset life story
 app.get('/scan/:tag', async (req, res) => {
   const asset = await Asset.findOne({
     where: { assetTag: req.params.tag },
-    include: [User, Location] // This is the "Eager Loading" magic
+    include: [
+        { model: Location },
+        { model: User }, // as: 'owner' }, // Use 'as' if you defined an alias
+        { 
+          model: AssetHistory, 
+          order: [['createdAt', 'DESC']] 
+        }
+      ]
   });
-  
-  if (!asset) return res.status(404).send("Asset not found");
   res.json(asset);
 });
+
