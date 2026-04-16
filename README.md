@@ -53,7 +53,7 @@ Start the service:
 sudo service mariadb start
 
 Secure it (press Enter for no password initially):
-sudo mysql -u root
+sudo mariadb -u root
 
 Inside the MariaDB prompt, run:
 SQL
@@ -68,7 +68,7 @@ Back in the terminal, set up your Express environment:
 npm init -y
 
 Install dependencies:
-npm install express sequelize mysql2 mariadb bcrypt jsonwebtoken dotenv qrcode
+npm install express sequelize mariadb bcrypt jsonwebtoken dotenv qrcode multer read-excel-file joi
 
 Create your folder structure:
 mkdir config models routes

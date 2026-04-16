@@ -15,9 +15,14 @@ app.get('/test-db', async (req, res) => {
   }
 });
 
+function getAppUrl() {
+  return req.protocol + '://' + (req.get('x-forwarded-host') || req.get('host'));
+}
+
 // Test Route: Generate a QR Code for an Asset
 app.get('/test-qr/:tag', async (req, res) => {
-  const url = `https://codespace-url/scan/${req.params.tag}`;
+  const hostUrl = getAppUrl();
+  const url = `${hostUrl}/scan/${req.params.tag}`;
   const qr = await QRCode.toDataURL(url);
   res.send(`<img src="${qr}">`);
 });
@@ -28,7 +33,7 @@ import Asset from './models/Asset.js';
 import Location from './models/Location.js';
 import AssetHistory from './models/AssetHistory.js';
 
-const PORT = 3000;
+const PORT = process.env.PORT;
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
 
@@ -143,3 +148,119 @@ app.get('/scan/:tag', async (req, res) => {
   res.json(asset);
 });
 
+import readXlsxFile from 'read-excel-file/node';
+import fs from 'fs';
+import multer from 'multer';
+const upload = multer({ dest: 'uploads/' });
+import assetSchema from './validators/assetValidator.js';
+import ImportLog from './models/ImportLog.js';
+
+app.post('/assets/bulk-import', upload.single('file'), async (req, res) => {
+  try {
+    const result = await readXlsxFile(req.file.path);
+    const rows = result[0].data; 
+    
+    const assetsToCreate = [];
+    const errors = [];
+
+    // Skip header, loop through rows
+    rows.slice(1).forEach((row, index) => {
+      const rowData = {
+        assetTag: row[0]?.toString().trim(),
+        model:    row[1]?.toString().trim(),
+        status:   row[2]?.toString().trim() || 'In Stock',
+        LocationId: row[3] ? parseInt(row[3], 10) : null
+      };
+
+      // Validate the row against our schema
+      const { error, value } = assetSchema.validate(rowData);
+
+      if (error) {
+        // Collect errors with the specific row number (index + 2 because of header and 0-index)
+        errors.push(`Row ${index + 2}: ${error.details[0].message}`);
+      } else {
+        assetsToCreate.push(value);
+      }
+    });
+
+    // If there are any errors, don't save anything—send the report back
+    if (errors.length > 0) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({
+        message: "Import failed due to validation errors.",
+        errors: errors
+      });
+    }
+
+    // If we passed validation, bulk create!
+    const savedAssets = await Asset.bulkCreate(assetsToCreate, { updateOnDuplicate: ['model', 'status', 'LocationId'] });
+
+    // CREATE THE LOG ENTRY
+    await ImportLog.create({
+      filename: req.file.originalname,
+      totalRows: savedAssets.length,
+      importedBy: req.user?.username || 'System Admin', // Using your Auth info
+      status: 'Completed'
+    });
+
+    fs.unlinkSync(req.file.path);
+    res.json({ message: `Successfully validated and imported ${savedAssets.length} assets.` });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// These two lines are required in ES Modules to get the current folder path
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// THE DOWNLOAD ROUTE
+app.get('/assets/template', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'templates', 'template.xlsx');
+  
+  // res.download handles headers, content-type, and streaming automatically
+  res.download(filePath, 'ITAM_Import_Template.xlsx', (err) => {
+    if (err) {
+      console.error("File download failed:", err);
+      res.status(404).send("Template file not found.");
+    }
+  });
+});
+
+app.get('/logs/imports', async (req, res) => {
+  const logs = await ImportLog.findAll({ order: [['createdAt', 'DESC']] });
+  res.json(logs);
+});
+
+import QRCode from 'qrcode';
+
+app.get('/assets/:tag/qr', async (req, res) => {
+  try {
+    const { tag } = req.params;
+
+    // The data you want encoded in the QR. 
+    // Usually, this is a URL to your frontend asset page.
+    
+    const hostUrl = getAppUrl();
+    const url = `${hostUrl}/assets/${tag}`;
+
+    // Generate QR code as a Data URL (Base64 string)
+    const qrImage = await QRCode.toDataURL(url, {
+      width: 300,
+      margin: 2,
+      color: {
+        dark: '#000000',  // Black dots
+        light: '#FFFFFF' // White background
+      }
+    });
+
+    // Send it back as an image-ready string
+    res.json({ assetTag: tag, qrCode: qrImage });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to generate QR code" });
+  }
+});
