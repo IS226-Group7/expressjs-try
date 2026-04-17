@@ -15,13 +15,13 @@ app.get('/test-db', async (req, res) => {
   }
 });
 
-function getAppUrl() {
-  return req.protocol + '://' + (req.get('x-forwarded-host') || req.get('host'));
+function getAppUrl(req) {
+  return (req.protocol) + '://' + (req.get('x-forwarded-host') || req.get('host'));
 }
 
 // Test Route: Generate a QR Code for an Asset
 app.get('/test-qr/:tag', async (req, res) => {
-  const hostUrl = getAppUrl();
+  const hostUrl = getAppUrl(req);
   const url = `${hostUrl}/scan/${req.params.tag}`;
   const qr = await QRCode.toDataURL(url);
   res.send(`<img src="${qr}">`);
@@ -236,8 +236,6 @@ app.get('/logs/imports', async (req, res) => {
   res.json(logs);
 });
 
-import QRCode from 'qrcode';
-
 app.get('/assets/:tag/qr', async (req, res) => {
   try {
     const { tag } = req.params;
@@ -245,7 +243,7 @@ app.get('/assets/:tag/qr', async (req, res) => {
     // The data you want encoded in the QR. 
     // Usually, this is a URL to your frontend asset page.
     
-    const hostUrl = getAppUrl();
+    const hostUrl = getAppUrl(req);
     const url = `${hostUrl}/assets/${tag}`;
 
     // Generate QR code as a Data URL (Base64 string)
@@ -262,5 +260,75 @@ app.get('/assets/:tag/qr', async (req, res) => {
     res.json({ assetTag: tag, qrCode: qrImage });
   } catch (err) {
     res.status(500).json({ error: "Failed to generate QR code" });
+  }
+});
+
+import PDFDocument from 'pdfkit';
+
+app.get('/assets/generate-labels', async (req, res) => {
+  try {
+    // 1. Fetch assets (e.g., the last 30 imported)
+    const assets = await Asset.findAll({ limit: 30, order: [['createdAt', 'DESC']] });
+
+    // 2. Setup PDF streaming
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    
+    // Set headers so the browser knows it's a PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="labels.pdf"');
+    doc.pipe(res);
+
+    // 3. Label Grid Constants
+    const labelWidth = 160;
+    const labelHeight = 80;
+    const cols = 3;
+    let x = 50;
+    let y = 50;
+
+    doc.fontSize(10).text("ITAM Asset Label Sheet", { align: 'center' });
+    doc.moveDown();
+
+    // 4. Generate Labels
+    for (let i = 0; i < assets.length; i++) {
+      const asset = assets[i];
+      
+      // Generate the QR as a Buffer (better for PDFKit than Base64)
+      const hostUrl = getAppUrl(req);
+      const url = `${hostUrl}/scan/${asset.assetTag}`;
+      const qrBuffer = await QRCode.toBuffer(url, { margin: 1 });
+
+      // Draw QR Code
+      doc.image(qrBuffer, x, y, { width: 60 });
+      
+      // Draw Text next to QR
+      doc.fontSize(8).fillColor('black')
+         .text(`Tag: ${asset.assetTag}`, x + 65, y + 15)
+         .text(`Model: ${asset.model.substring(0, 15)}`, x + 65, y + 30);
+
+      // Border for the label (cutting guide)
+      doc.rect(x - 5, y - 5, labelWidth, labelHeight).strokeColor('#cccccc').stroke();
+
+      // Move to next column/row
+      if ((i + 1) % cols === 0) {
+        x = 50;
+        y += labelHeight + 10;
+      } else {
+        x += labelWidth + 10;
+      }
+
+      // If we hit the bottom of the page, start a new one
+      if (y > 700 && i < assets.length - 1) {
+        doc.addPage();
+        x = 50;
+        y = 50;
+      }
+    }
+
+    // 5. Finalize the PDF
+    doc.end();
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error generating PDF");
   }
 });
