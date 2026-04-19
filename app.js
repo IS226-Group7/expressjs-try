@@ -5,28 +5,9 @@ import QRCode from 'qrcode';
 const app = express();
 app.use(express.json());
 
-// Test Route: Check MariaDB Connection
-app.get('/test-db', async (req, res) => {
-  try {
-    await sequelize.authenticate();
-    res.send("Successfully connected to MariaDB!");
-  } catch (error) {
-    res.status(500).send("Connection failed: " + error.message);
-  }
-});
-
 function getAppUrl(req) {
   return (req.protocol) + '://' + (req.get('x-forwarded-host') || req.get('host'));
 }
-
-// Test Route: Generate a QR Code for an Asset
-app.get('/test-qr/:tag', async (req, res) => {
-  const hostUrl = getAppUrl(req);
-  const url = `${hostUrl}/api/scan/${req.params.tag}`;
-  const qr = await QRCode.toDataURL(url);
-  res.send(`<img src="${qr}">`);
-});
-
 
 import User from './models/User.js';
 import Asset from './models/Asset.js';
@@ -51,11 +32,6 @@ app.listen(PORT, async () => {
   // Sync database (creates tables)
   await sequelize.sync({ alter: true });
   console.log("Database models synced.");
-});
-
-// Add this in app.js
-app.get('/', (req, res) => {
-  res.send('<h1>ITAM Backend is Live</h1><p>Database is connected and routes are ready.</p>');
 });
 
 import bcrypt from 'bcrypt';
@@ -103,8 +79,6 @@ app.post('/api/locations', async (req, res) => {
   const loc = await Location.create(req.body);
   res.json(loc);
 });
-
-
 
 // update asset history
 app.put('/api/assets/:tag/status', async (req, res) => {
@@ -333,3 +307,48 @@ app.get('/api/assets/generate-labels', async (req, res) => {
   }
 });
 
+
+import { Op } from 'sequelize';
+
+app.get('/api/assets/search', async (req, res) => {
+  try {
+    const { q } = req.query; // This is the 'searchTerm' from React
+
+    let whereClause = {};
+
+    if (q) {
+      whereClause = {
+        [Op.or]: [
+          // Search for partial matches in Tag (e.g., "LAP" matches "LAP-001")
+          { assetTag: { [Op.like]: `%${q}%` } },
+          // Search for partial matches in Model (e.g., "Mac" matches "MacBook")
+          { model: { [Op.like]: `%${q}%` } },
+          { '$Location.name$': { [Op.like]: `%${q}%` } }
+        ]
+      };
+    }
+
+    const assets = await Asset.findAll({
+      where: whereClause,
+      include: [{ model: Location, attributes: ['name'] }], // Include Location name
+      limit: 50, // Safety First: Don't crash the frontend with 10,000 rows
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json(assets);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+//import path from 'path';
+// const __dirname = path.resolve();
+
+// Serve the static files from the React "dist" folder
+app.use(express.static(path.join(__dirname, 'frontend/dist')));
+
+// Handle React routing (returns index.html for any non-API route)
+app.get(/^(?!\/api).+/, (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/dist/index.html'));
+});
