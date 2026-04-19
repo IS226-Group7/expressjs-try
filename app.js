@@ -22,7 +22,7 @@ function getAppUrl(req) {
 // Test Route: Generate a QR Code for an Asset
 app.get('/test-qr/:tag', async (req, res) => {
   const hostUrl = getAppUrl(req);
-  const url = `${hostUrl}/scan/${req.params.tag}`;
+  const url = `${hostUrl}/api/scan/${req.params.tag}`;
   const qr = await QRCode.toDataURL(url);
   res.send(`<img src="${qr}">`);
 });
@@ -62,7 +62,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 // --- REGISTER ROUTE ---
-app.post('/register', async (req, res) => {
+app.post('/api/register', async (req, res) => {
   try {
     const { username, password } = req.body;
     
@@ -76,7 +76,7 @@ app.post('/register', async (req, res) => {
 });
 
 // --- LOGIN ROUTE ---
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const user = await User.findOne({ where: { username } });
@@ -93,13 +93,13 @@ app.post('/login', async (req, res) => {
 });
 
 // Add a new Asset
-app.post('/assets', async (req, res) => {
+app.post('/api/assets', async (req, res) => {
   const asset = await Asset.create(req.body);
   res.json(asset);
 });
 
 // Add a new Location
-app.post('/locations', async (req, res) => {
+app.post('/api/locations', async (req, res) => {
   const loc = await Location.create(req.body);
   res.json(loc);
 });
@@ -107,7 +107,7 @@ app.post('/locations', async (req, res) => {
 
 
 // update asset history
-app.put('/assets/:tag/status', async (req, res) => {
+app.put('/api/assets/:tag/status', async (req, res) => {
   const { newStatus, notes, techName } = req.body;
 
   const asset = await Asset.findOne({ where: { assetTag: req.params.tag } });
@@ -133,7 +133,7 @@ app.put('/assets/:tag/status', async (req, res) => {
 });
 
 //view asset life story
-app.get('/scan/:tag', async (req, res) => {
+app.get('/api/scan/:tag', async (req, res) => {
   const asset = await Asset.findOne({
     where: { assetTag: req.params.tag },
     include: [
@@ -155,7 +155,7 @@ const upload = multer({ dest: 'uploads/' });
 import assetSchema from './validators/assetValidator.js';
 import ImportLog from './models/ImportLog.js';
 
-app.post('/assets/bulk-import', upload.single('file'), async (req, res) => {
+app.post('/api/assets/bulk-import', upload.single('file'), async (req, res) => {
   try {
     const result = await readXlsxFile(req.file.path);
     const rows = result[0].data; 
@@ -219,7 +219,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // THE DOWNLOAD ROUTE
-app.get('/assets/template', (req, res) => {
+app.get('/api/assets/template', (req, res) => {
   const filePath = path.join(__dirname, 'public', 'templates', 'template.xlsx');
   
   // res.download handles headers, content-type, and streaming automatically
@@ -231,12 +231,12 @@ app.get('/assets/template', (req, res) => {
   });
 });
 
-app.get('/logs/imports', async (req, res) => {
+app.get('/api/logs/imports', async (req, res) => {
   const logs = await ImportLog.findAll({ order: [['createdAt', 'DESC']] });
   res.json(logs);
 });
 
-app.get('/assets/:tag/qr', async (req, res) => {
+app.get('/api/assets/:tag/qr', async (req, res) => {
   try {
     const { tag } = req.params;
 
@@ -244,7 +244,7 @@ app.get('/assets/:tag/qr', async (req, res) => {
     // Usually, this is a URL to your frontend asset page.
     
     const hostUrl = getAppUrl(req);
-    const url = `${hostUrl}/assets/${tag}`;
+    const url = `${hostUrl}/api/assets/${tag}`;
 
     // Generate QR code as a Data URL (Base64 string)
     const qrImage = await QRCode.toDataURL(url, {
@@ -265,7 +265,7 @@ app.get('/assets/:tag/qr', async (req, res) => {
 
 import PDFDocument from 'pdfkit';
 
-app.get('/assets/generate-labels', async (req, res) => {
+app.get('/api/assets/generate-labels', async (req, res) => {
   try {
     // 1. Fetch assets (e.g., the last 30 imported)
     const assets = await Asset.findAll({ limit: 30, order: [['createdAt', 'DESC']] });
@@ -294,7 +294,7 @@ app.get('/assets/generate-labels', async (req, res) => {
       
       // Generate the QR as a Buffer (better for PDFKit than Base64)
       const hostUrl = getAppUrl(req);
-      const url = `${hostUrl}/scan/${asset.assetTag}`;
+      const url = `${hostUrl}/api/scan/${asset.assetTag}`;
       const qrBuffer = await QRCode.toBuffer(url, { margin: 1 });
 
       // Draw QR Code
@@ -332,3 +332,4 @@ app.get('/assets/generate-labels', async (req, res) => {
     res.status(500).send("Error generating PDF");
   }
 });
+
