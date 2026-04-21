@@ -81,7 +81,7 @@ app.post('/api/locations', async (req, res) => {
 });
 
 // update asset history
-app.put('/api/assets/:tag/status', async (req, res) => {
+app.patch('/api/assets/:tag/status', async (req, res) => {
   const { newStatus, notes, techName } = req.body;
 
   const asset = await Asset.findOne({ where: { assetTag: req.params.tag } });
@@ -210,7 +210,7 @@ app.get('/api/logs/imports', async (req, res) => {
   res.json(logs);
 });
 
-app.get('/api/assets/:tag/qr', async (req, res) => {
+app.get('/api/assets/qr/:tag', async (req, res) => {
   try {
     const { tag } = req.params;
 
@@ -218,20 +218,24 @@ app.get('/api/assets/:tag/qr', async (req, res) => {
     // Usually, this is a URL to your frontend asset page.
     
     const hostUrl = getAppUrl(req);
-    const url = `${hostUrl}/api/assets/${tag}`;
+    const url = `${hostUrl}/api/scan/${tag}`;
 
     // Generate QR code as a Data URL (Base64 string)
-    const qrImage = await QRCode.toDataURL(url, {
-      width: 300,
-      margin: 2,
-      color: {
-        dark: '#000000',  // Black dots
-        light: '#FFFFFF' // White background
-      }
-    });
+    // const qrImage = await QRCode.toDataURL(url, {
+    //   width: 300,
+    //   margin: 2,
+    //   color: {
+    //     dark: '#000000',  // Black dots
+    //     light: '#FFFFFF' // White background
+    //   }
+    // });
 
     // Send it back as an image-ready string
-    res.json({ assetTag: tag, qrCode: qrImage });
+    // res.json({ assetTag: tag, qrCode: qrImage });
+
+    const qrImage = await QRCode.toBuffer(url);
+    res.type('image/png');
+    res.send(qrImage);
   } catch (err) {
     res.status(500).json({ error: "Failed to generate QR code" });
   }

@@ -29,6 +29,19 @@ const AssetTable = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
+const printQR = (tag) => {
+  const win = window.open("", "_blank");
+  win.document.write(`
+    <html>
+      <body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
+        <h1 style="margin-bottom:20px;">Asset: ${tag}</h1>
+        <img src="/api/assets/qr/${tag}" style="width:300px; height:300px;" />
+        <button onclick="window.print()" style="margin-top:20px; padding:10px 20px;">Print Label</button>
+      </body>
+    </html>
+  `);
+};
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center">
@@ -67,12 +80,18 @@ const AssetTable = () => {
                   {asset.Location?.name || 'Unassigned'}
                 </div>
               </td>
-              <td className="p-4">
-                <StatusBadge status={asset.status} />
+              <td className="px-6 py-4">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  asset.status === 'In Stock' ? 'bg-green-100 text-green-700' :
+                  asset.status === 'Deployed' ? 'bg-blue-100 text-blue-700' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                  {asset.status}
+                </span>
               </td>
               <td className="p-4">
                 <button 
-                  onClick={() => window.open(`/api/assets/${asset.assetTag}/qr`)}
+                  onClick={() => printQR(asset.assetTag)}
                   className="p-2 hover:bg-blue-100 rounded-full text-blue-600 transition-colors"
                   title="View QR Code"
                 >

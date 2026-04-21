@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Upload, FileText, Search, Package, CheckCircle } from 'lucide-react';
 import AssetTable from './components/AssetTable'; // Make sure this path is correct
+import Scanner from './components/Scanner'; // Import the scanner we built
+import { Camera, LayoutDashboard } from 'lucide-react';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({ total: 0, deployed: 0, inStock: 0 });
@@ -26,41 +28,30 @@ const Dashboard = () => {
   };
 
   const handleScanSuccess = async (decodedText) => {
-    try {
-      // 1. The QR code usually contains the Asset Tag (e.g., "LAP-101")
-      // We hit your search endpoint using the relative path
-      const response = await axios.get(`/api/assets/search?q=${decodedText}`);
-      
-      if (response.data.length > 0) {
-        const asset = response.data[0];
-        alert(`
-          Asset Found!
-          Tag: ${asset.assetTag}
-          Model: ${asset.model}
-          Location: ${asset.Location?.name || 'Unknown'}
-          Status: ${asset.status}
-        `);
-      } else {
-        alert("Asset not found in database.");
+    const assetTag = decodedText.split('/').pop();
+    const res = await axios.get(`/api/assets/search?q=${assetTag}`);
+    if (res.data.length > 0) {
+      const asset = res.data[0];
+      // We can use a custom modal or a simple prompt for now
+      const newStatus = window.prompt(
+        `Asset: ${asset.assetTag}\nCurrent Status: ${asset.status}\n\nEnter new status (In Stock, Deployed, Repair):`,
+        asset.status
+      );
+
+      if (newStatus && newStatus !== asset.status) {
+        await axios.patch(`/api/assets/${asset.assetTag}/status`, { "newStatus": newStatus });
+        alert("Updated!");
+        window.location.reload(); // Refresh to show changes in the table
       }
-    } catch (error) {
-      console.error("Lookup error:", error);
-      alert("Error connecting to the server.");
     }
   };
 
+  const [isScanning, setIsScanning] = useState(false);
+  
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <header className="mb-8 flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800">ITAM Inventory</h1>
-        <div className="space-x-4">
-          <button 
-            onClick={downloadLabels}
-            className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            <FileText className="mr-2 w-4 h-4" /> Export Labels
-          </button>
-        </div>
       </header>
 
       {/* Stats Cards */}
@@ -89,8 +80,42 @@ const Dashboard = () => {
         </div>
       </div>
       
+      <div className="space-x-4">
+        <button 
+          onClick={downloadLabels}
+          className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
+          <FileText className="mr-2 w-4 h-4" /> Export Labels
+        </button>
+      </div>
+
+      {/* THE SCANNER BUTTON */}
+      <button
+        onClick={() => setIsScanning(!isScanning)}
+        className={`flex items-center px-6 py-3 rounded-xl font-bold transition-all shadow-lg ${
+          isScanning 
+            ? 'bg-red-500 hover:bg-red-600 text-white' 
+            : 'bg-blue-600 hover:bg-blue-700 text-white'
+        }`}
+      >
+        {isScanning ? (
+          <> <LayoutDashboard className="mr-2" /> Back to List </>
+        ) : (
+          <> <Camera className="mr-2" /> Scan QR Code </>
+        )}
+      </button>
+
       <section className="mt-6">
-          <AssetTable />
+          {isScanning ? (
+            <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
+              <Scanner onScanSuccess={(tag) => {
+                handleScanSuccess(tag);
+                setIsScanning(false); // Close scanner after success
+              }} />
+            </div>
+          ) : (
+            <AssetTable />
+          )}
       </section>
 
     </div>
