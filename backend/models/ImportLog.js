@@ -1,5 +1,5 @@
 import { DataTypes } from 'sequelize';
-import sequelize from '../config/db.js';
+import sequelize from '../config/database.js';
 
 const ImportLog = sequelize.define('ImportLog', {
   filename: { type: DataTypes.STRING, allowNull: false },

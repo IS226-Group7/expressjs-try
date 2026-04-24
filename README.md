@@ -85,9 +85,13 @@ JWT_SECRET=super-secret-key
 
 # for the frontend
 cd frontend
+
 npm install
+
 npm run build
+
 
 # run the app with the frontend built
 cd ..
+
 node app.js
