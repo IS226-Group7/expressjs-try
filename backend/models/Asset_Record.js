@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
-export default sequelize.define('Asset_Record', {
+export default sequelize.define('Asset', {
   asset_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   asset_tag: { type: DataTypes.INTEGER, defaultValue: 0 }, // 0 or 1
   serial_number: { type: DataTypes.STRING, allowNull: false },

@@ -12,6 +12,7 @@ import UserAccount from './User_Account_Record.js';
 import UserAccountManagement from './User_Account_Management.js';
 import UserType from './User_Type_Record.js';
 import LogisticalRequirement from './Logistical_Requirement_Record.js';
+import ComponentType from './Component_Type_Record.js';
 
 // --- ASSET ASSOCIATIONS ---
 
@@ -36,6 +37,8 @@ Component.belongsTo(Asset, { foreignKey: 'asset_id' });
 // Component <-> ComponentHistory (One-to-Many)
 Component.hasMany(ComponentHistory, { foreignKey: 'component_id' });
 ComponentHistory.belongsTo(Component, { foreignKey: 'component_id' });
+
+Component.belongsTo(ComponentType, {foreignKey: 'componentType_id' });
 
 // --- USER & ACCOUNT ASSOCIATIONS ---
 

@@ -5,8 +5,13 @@ import {
   User, 
   UserAccount, 
   UserType, 
-  UserAccountManagement 
+  UserAccountManagement,
+  Category,
+  AcquisitionType,
+  Component,
+  Asset,
 } from './models/index.js';
+import ComponentType from './models/Component_Type_Record.js';
 
 const seedAdmin = async () => {
   try {
@@ -65,6 +70,113 @@ const seedAdmin = async () => {
     console.log('Pass: Admin123!');
     console.log('Role: Admin');
     console.log('-----------------------------------');
+
+    // Build Libraries for Assets
+    const [cat1] = await Category.findOrCreate({
+      where: { category_name: 'ComputerEquipment' },
+      defaults: {
+        description: 'Computing devices such as desktops, laptops, and workstations used for data processing and office productivity',
+      }
+    });
+    const [cat2] = await Category.findOrCreate({
+      where: { category_name: 'NetworkEquipment' },
+      defaults: {
+        description: 'Devices used for network connectivity such as routers, switches, and access points',
+      }
+    });
+    const [cat3] = await Category.findOrCreate({
+      where: { category_name: 'PeripheralDevices' },
+      defaults: {
+        description: 'External devices connected to computers including printers, scanners, keyboards, and monitors',
+      }
+    });
+    const [cat4] = await Category.findOrCreate({
+      where: { category_name: 'SecurityDevices' },
+      defaults: {
+        description: 'Equipment used for IT and physical security such as CCTV systems, firewalls, and biometric devices',
+      }
+    });
+
+    const [acq1] = await AcquisitionType.findOrCreate({
+      where: { acquisitionType_name: 'Issued' },
+      defaults: {
+        description: 'Assets given by higher headquarters',
+      }
+    });
+    const [acq2] = await AcquisitionType.findOrCreate({
+      where: { acquisitionType_name: 'MOOE' },
+      defaults: {
+        description: 'Assets bought through Maintenance and Other Operating Expenses allotment',
+      }
+    });
+    const [acq3] = await AcquisitionType.findOrCreate({
+      where: { acquisitionType_name: 'Donated' },
+      defaults: {
+        description: 'Assets received free of charge from another entity',
+      }
+    });
+    const [acq4] = await AcquisitionType.findOrCreate({
+      where: { acquisitionType_name: 'Loaned' },
+      defaults: {
+        description: 'Assets borrowed from other PNP unit or office',
+      }
+    });
+
+    const [compo1] = await ComponentType.findOrCreate({
+      where: { componentType_name: 'Cooling Fan' },
+      defaults: {
+        description: 'Prevents overheating',
+      }
+    });
+    const [compo2] = await ComponentType.findOrCreate({
+      where: { componentType_name: 'Graphics Card' },
+      defaults: {
+        description: 'Handles image rendering',
+      }
+    });
+    const [compo3] = await ComponentType.findOrCreate({
+      where: { componentType_name: 'HDD' },
+      defaults: {
+        description: 'Traditional storage device',
+      }
+    });
+    const [compo4] = await ComponentType.findOrCreate({
+      where: { componentType_name: 'Motherboard' },
+      defaults: {
+        description: 'Main circuit board connecting all components',
+      }
+    });
+    const [compo5] = await ComponentType.findOrCreate({
+      where: { componentType_name: 'NIC' },
+      defaults: {
+        description: 'Enables network connectivity',
+      }
+    });
+    const [compo6] = await ComponentType.findOrCreate({
+      where: { componentType_name: 'Power Supply' },
+      defaults: {
+        description: 'Provides power to components',
+      }
+    });
+    const [compo7] = await ComponentType.findOrCreate({
+      where: { componentType_name: 'Processor' },
+      defaults: {
+        description: 'Executes instructions and processes data',
+      }
+    });
+    const [compo8] = await ComponentType.findOrCreate({
+      where: { componentType_name: 'RAM' },
+      defaults: {
+        description: 'Temporary memory for active processes',
+      }
+    });
+    const [compo9] = await ComponentType.findOrCreate({
+      where: { componentType_name: 'SSD' },
+      defaults: {
+        description: 'Fast storage device',
+      }
+    });
+
 
     process.exit(0);
   } catch (error) {
