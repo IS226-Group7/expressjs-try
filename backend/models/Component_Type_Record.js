@@ -2,12 +2,12 @@ import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
 const ComponentType = sequelize.define('Component_Type_Record', {
-  componentType_id: {
+  component_type_id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true
   },
-  componentType_name: {
+  component_type_name: {
     type: DataTypes.STRING,
     allowNull: false
   },

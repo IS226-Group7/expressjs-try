@@ -123,55 +123,55 @@ const seedAdmin = async () => {
     });
 
     const [compo1] = await ComponentType.findOrCreate({
-      where: { componentType_name: 'Cooling Fan' },
+      where: { component_type_name: 'Cooling Fan' },
       defaults: {
         description: 'Prevents overheating',
       }
     });
     const [compo2] = await ComponentType.findOrCreate({
-      where: { componentType_name: 'Graphics Card' },
+      where: { component_type_name: 'Graphics Card' },
       defaults: {
         description: 'Handles image rendering',
       }
     });
     const [compo3] = await ComponentType.findOrCreate({
-      where: { componentType_name: 'HDD' },
+      where: { component_type_name: 'HDD' },
       defaults: {
         description: 'Traditional storage device',
       }
     });
     const [compo4] = await ComponentType.findOrCreate({
-      where: { componentType_name: 'Motherboard' },
+      where: { component_type_name: 'Motherboard' },
       defaults: {
         description: 'Main circuit board connecting all components',
       }
     });
     const [compo5] = await ComponentType.findOrCreate({
-      where: { componentType_name: 'NIC' },
+      where: { component_type_name: 'NIC' },
       defaults: {
         description: 'Enables network connectivity',
       }
     });
     const [compo6] = await ComponentType.findOrCreate({
-      where: { componentType_name: 'Power Supply' },
+      where: { component_type_name: 'Power Supply' },
       defaults: {
         description: 'Provides power to components',
       }
     });
     const [compo7] = await ComponentType.findOrCreate({
-      where: { componentType_name: 'Processor' },
+      where: { component_type_name: 'Processor' },
       defaults: {
         description: 'Executes instructions and processes data',
       }
     });
     const [compo8] = await ComponentType.findOrCreate({
-      where: { componentType_name: 'RAM' },
+      where: { component_type_name: 'RAM' },
       defaults: {
         description: 'Temporary memory for active processes',
       }
     });
     const [compo9] = await ComponentType.findOrCreate({
-      where: { componentType_name: 'SSD' },
+      where: { component_type_name: 'SSD' },
       defaults: {
         description: 'Fast storage device',
       }
