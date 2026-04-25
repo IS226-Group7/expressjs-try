@@ -44,9 +44,12 @@ cd ..
 cd frontend
 
 npm install
-
 npm run build
+cd ..
+
+# populate the first admin user (admin / Admin123!)
+cd backend
+node seed.js
 
 # run the app with the frontend built
-cd ..
 node app.js
