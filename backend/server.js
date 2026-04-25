@@ -3,7 +3,8 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import authRouter from './api/authRouter.js'; 
+// 1. IMPORT ROUTERS (The missing piece causing your ReferenceError)
+import authRouter from './api/authRouter.js';
 import assetRouter from './api/assetRouter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -11,19 +12,26 @@ const app = express();
 
 app.use(express.json());
 
-// 1. Serve the API first
+// 2. API ROUTES (The Engine Logic)
+// These MUST come before the static files/catch-all
 app.use('/api/auth', authRouter);
 app.use('/api/assets', assetRouter);
 
-// 2. Serve the built Frontend files
-// This assumes your frontend folder is named 'frontend' and you ran build there
+// 3. STATIC FILES (The Built Frontend)
+// This serves your JS, CSS, and Images from the frontend/dist folder
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// 3. The SPA Catch-all
-// This ensures that if you refresh the page on /dashboard, 
-// Express sends index.html instead of a 404.
-app.get('*', (req, res) => {
+/**
+ * 4. THE SPA CATCH-ALL (The Router Fix)
+ * We use the regex /^(?!\/api).+/ to tell Express:
+ * "If the request does NOT start with /api, send the index.html."
+ * This allows React Router to handle page navigation (like /dashboard).
+ */
+app.get(/^(?!\/api).+/, (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-app.listen(3000, () => console.log('🚀 Unified Engine & Dashboard running on 3000'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Unified Engine running on http://localhost:${PORT}`);
+});
