@@ -42,6 +42,15 @@ function App() {
             } 
           />
 
+          <Route 
+            path="/admin/users" 
+            element={
+              <ProtectedRoute>
+                <UserManagement />
+              </ProtectedRoute>
+            } 
+          />
+
           {/* Fallback: Any unknown URL sends them to Login */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
