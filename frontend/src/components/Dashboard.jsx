@@ -1,150 +1,241 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  
+  // App State
   const [query, setQuery] = useState('');
   const [asset, setAsset] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const inputRef = useRef(null);
-  const navigate = useNavigate();
+  const [error, setError] = useState('');
+  
+  // Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [formData, setFormData] = useState({
+    assetName: '',
+    serialNumber: '',
+    categoryId: '',
+    status: 'Workable'
+  });
 
-  // Parse user info from localStorage
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-  // Auto-focus the scanner input on load
+  // 1. DYNAMIC CATEGORY FETCH
   useEffect(() => {
-    inputRef.current?.focus();
+    const fetchCategories = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/assets/categories', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setCategories(data);
+          if (data.length > 0) {
+            setFormData(prev => ({ ...prev, categoryId: data[0].category_id }));
+          }
+        }
+      } catch (err) {
+        console.error("Database Link Failure: Categories unreachable.");
+      }
+    };
+    fetchCategories();
   }, []);
 
+  // 2. SEARCH / SCAN LOGIC
   const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
+    if (e) e.preventDefault();
+    if (!query) return;
     setLoading(true);
-    setMessage('');
-    setAsset(null);
-
+    setError('');
+    
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/assets/search?q=${encodeURIComponent(query)}`, {
+      const res = await fetch(`/api/assets/search?q=${query}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-
-      if (res.ok) {
-        setAsset(data);
-        setQuery(''); // Clear for next scan
-      } else {
-        setMessage(data.message || 'Asset not found in database.');
-      }
+      if (res.ok) setAsset(data);
+      else setError('No Record Found.');
     } catch (err) {
-      setMessage('Engine connection error.');
+      setError('Engine Offline.');
     } finally {
       setLoading(false);
-      inputRef.current?.focus(); // Refocus for next scan
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
+  // 3. COMMISSION ASSET (Relational Handshake)
+  const handleCreateAsset = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/assets/create', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        setShowAddModal(false);
+        setAsset(result.asset);
+        setQuery(formData.serialNumber);
+      } else {
+        const d = await res.json();
+        alert(d.message);
+      }
+    } catch (err) {
+      alert("Relational Insert Failed.");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 p-4 font-sans">
-      {/* Top Navigation Bar */}
-      <nav className="max-w-5xl mx-auto flex justify-between items-center mb-10 border-b border-gray-800 pb-5">
-        <div>
-          <h1 className="text-xl font-black tracking-tighter text-green-500">ITAM ENGINE v1.0</h1>
-          <p className="text-[10px] text-gray-500 uppercase tracking-widest">
-            Operator: {user.name || 'Unknown'} | Role: {user.role || 'User'}
-          </p>
-        </div>
+    <div className="p-4 md:p-10 max-w-5xl mx-auto min-h-screen">
+      
+      {/* HEADER ACTIONS */}
+      <div className="flex justify-between items-center mb-10 border-b border-gray-800 pb-6">
+        <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Scanner Interface</h2>
         <button 
-          onClick={handleLogout}
-          className="px-4 py-2 bg-red-950/20 border border-red-900 text-red-500 text-xs font-bold rounded hover:bg-red-900 hover:text-white transition-all"
+          onClick={() => setShowAddModal(true)}
+          className="bg-green-600 hover:bg-green-500 text-black px-6 py-2 rounded font-black text-xs uppercase transition-all"
         >
-          TERMINATE SESSION
+          + Commission Hardware
         </button>
-      </nav>
+      </div>
 
-      <main className="max-w-2xl mx-auto">
-        {/* Scan Entry Area */}
-        <div className="mb-10">
-          <form onSubmit={handleSearch} className="relative">
-            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">
-              Awaiting Scan (Asset Tag / Serial)
-            </label>
-            <div className="flex gap-2">
-              <input 
-                ref={inputRef}
-                type="text" 
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="flex-1 bg-black border-2 border-gray-800 p-4 rounded-lg text-green-400 font-mono focus:outline-none focus:border-green-600 transition-colors"
-                placeholder="000000000000"
-              />
-              <button 
-                type="submit" 
-                className="bg-green-600 px-8 py-4 rounded-lg font-black text-black hover:bg-green-400 active:scale-95 transition-all"
-              >
-                EXECUTE
-              </button>
-            </div>
-          </form>
-        </div>
+      {/* SCANNER INPUT */}
+      <form onSubmit={handleSearch} className="mb-12 relative max-w-2xl mx-auto">
+        <input 
+          type="text" 
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="READY FOR SCAN..."
+          className="w-full bg-black border-2 border-gray-800 focus:border-green-500 p-5 rounded-xl text-xl font-mono text-green-400 outline-none uppercase placeholder-gray-800"
+          autoFocus
+        />
+        {loading && <div className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin h-5 w-5 border-2 border-green-500 border-t-transparent rounded-full"></div>}
+      </form>
 
-        {/* Status Messages */}
-        {loading && <div className="text-center py-10 animate-pulse text-green-500 font-mono uppercase text-sm">Searching MariaDB Records...</div>}
-        {message && <div className="p-4 bg-red-900/10 border border-red-900/50 text-red-400 text-center rounded-lg mb-6">{message}</div>}
-
-        {/* Asset Card */}
-        {asset && (
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in duration-300">
-            <div className="bg-gray-700/50 p-4 border-b border-gray-600 flex justify-between items-center">
-              <span className="text-xs font-bold text-gray-400 uppercase">System Record #{asset.asset_id}</span>
-              <span className="px-2 py-1 bg-green-900 text-green-300 text-[10px] font-black rounded uppercase">
+      {/* ASSET DATA & PRINT PREVIEW */}
+      {asset && (
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Hardware Record</p>
+              <h3 className="text-3xl font-black text-white uppercase tracking-tight">{asset.asset_name}</h3>
+              <p className="text-green-500 font-mono text-sm tracking-widest mt-1">{asset.serial_number}</p>
+              <span className={`inline-block mt-4 px-3 py-1 rounded text-[10px] font-black uppercase ${
+                asset.status === 'Workable' ? 'bg-green-900/40 text-green-400' : 
+                asset.status === 'Under Repair' ? 'bg-yellow-900/40 text-yellow-400' : 'bg-red-900/40 text-red-400'
+              }`}>
                 {asset.status}
               </span>
             </div>
-            
-            <div className="p-8 space-y-6">
-              <div className="grid grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-[10px] text-gray-500 uppercase font-bold mb-1">Nomenclature</h3>
-                  <p className="text-xl font-bold text-white">{asset.asset_name}</p>
-                </div>
-                <div>
-                  <h3 className="text-[10px] text-gray-500 uppercase font-bold mb-1">Serial Number</h3>
-                  <p className="text-xl font-mono text-white">{asset.serial_number}</p>
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-gray-700 grid grid-cols-3 gap-4">
-                <div>
-                  <h3 className="text-[10px] text-gray-500 uppercase font-bold">Category</h3>
-                  <p className="text-sm">{asset.Asset_Category_Record?.category_name || 'N/A'}</p>
-                </div>
-                <div>
-                  <h3 className="text-[10px] text-gray-500 uppercase font-bold">Location</h3>
-                  <p className="text-sm">Main Storage</p>
-                </div>
-                <div>
-                  <h3 className="text-[10px] text-gray-500 uppercase font-bold">Last Inventory</h3>
-                  <p className="text-sm">Today</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-gray-900/40 border-t border-gray-700">
-              <button className="w-full py-3 bg-gray-800 border border-gray-600 rounded-lg text-xs font-bold hover:bg-gray-700 transition-all uppercase tracking-widest">
-                Edit Asset Details
-              </button>
-            </div>
+            <button 
+              onClick={() => window.print()}
+              className="bg-gray-700 hover:bg-gray-600 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+            >
+              Generate ID Tag
+            </button>
           </div>
-        )}
-      </main>
+
+          {/* HIDDEN PRINT BLOCK - Optimized for 3" x 2" or large 2.5" x 1.5" labels */}
+          <div 
+            id="print-section" 
+            className="hidden print:flex flex-col items-center justify-center bg-white text-black mx-auto"
+            style={{ width: '3in', height: '2in', padding: '10px' }}
+          >
+              {/* Header Line */}
+              <p className="text-[10px] font-black uppercase mb-2 border-b-2 border-black w-full text-center pb-1">
+                ITAM PROPERTY TAG
+              </p>
+
+              {/* The QR Code - Increased size from 65 to 110 */}
+              <div className="bg-white p-1 border border-gray-200">
+                <QRCodeSVG 
+                  value={asset.serial_number} 
+                  size={110} 
+                  level="H" 
+                  includeMargin={false}
+                />
+              </div>
+
+              {/* Metadata */}
+              <div className="text-center mt-2">
+                <p className="font-mono font-black text-[16px] leading-none uppercase">
+                  {asset.serial_number}
+                </p>
+                <p className="text-[9px] font-bold uppercase opacity-80 tracking-tighter mt-1">
+                  {asset.asset_name}
+                </p>
+              </div>
+
+              {/* Footer timestamp for audit */}
+              <p className="text-[6px] uppercase mt-auto opacity-50">
+                Registered: {new Date(asset.createdAt).toLocaleDateString()}
+              </p>
+          </div>
+        </div>
+      )}
+
+      {/* REGISTRATION MODAL */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[100]">
+          <div className="bg-gray-800 border border-gray-700 p-8 rounded-3xl w-full max-w-md shadow-2xl">
+            <h2 className="text-xl font-black text-white mb-6 uppercase tracking-tighter">Onboard New Asset</h2>
+            <form onSubmit={handleCreateAsset} className="space-y-4">
+              
+              <div>
+                <label className="block text-[10px] text-gray-500 font-bold uppercase mb-1 ml-1">Nomenclature</label>
+                <input type="text" placeholder="e.g. DELL PRECISION" className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-white text-sm" 
+                  onChange={e => setFormData({...formData, assetName: e.target.value})} required />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-gray-500 font-bold uppercase mb-1 ml-1">Serial Number</label>
+                <input type="text" placeholder="SN-XXXXX" className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-green-500 font-mono text-sm" 
+                  onChange={e => setFormData({...formData, serialNumber: e.target.value})} required />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] text-gray-500 font-bold uppercase mb-1 ml-1">Category</label>
+                  <select 
+                    className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-white text-xs font-bold"
+                    value={formData.categoryId}
+                    onChange={e => setFormData({...formData, categoryId: e.target.value})}
+                  >
+                    {categories.map(cat => (
+                      <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-gray-500 font-bold uppercase mb-1 ml-1">Status</label>
+                  <select 
+                    className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-white text-xs font-bold"
+                    value={formData.status}
+                    onChange={e => setFormData({...formData, status: e.target.value})}
+                  >
+                    <option value="Workable">Workable</option>
+                    <option value="Under Repair">Under Repair</option>
+                    <option value="BER">BER</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-4 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold text-xs uppercase">Cancel</button>
+                <button type="submit" className="flex-1 py-4 bg-green-600 hover:bg-green-500 text-black rounded-xl font-black text-xs uppercase tracking-widest">Register</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

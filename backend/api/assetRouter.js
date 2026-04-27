@@ -1,9 +1,15 @@
-import express from 'express';
+import express, { Router } from 'express';
+import { Asset, Category } from '../models/index.js';
+import sequelize from '../config/database.js';
+import { verifyToken } from '../middleware/auth.js';
+import { Op } from 'sequelize'; // Necessary for "LIKE" queries
+
+// Import Sequelize models or DB config here
+
 const router = express.Router();
-// Import your Sequelize models or DB config here
 
 // GET all assets with Category and User details (JOIN logic)
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
     // Example: SELECT * FROM Asset_Record JOIN Asset_Category_Record...
     res.json({ message: "List of assets with categories" });
@@ -13,7 +19,7 @@ router.get('/', async (req, res) => {
 });
 
 // PATCH update status and log to Asset_History_Record
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', verifyToken, async (req, res) => {
   const { fromStatus, toStatus, changed_by } = req.body;
   try {
     // 1. Update Asset_Record set status = toStatus
@@ -21,6 +27,67 @@ router.patch('/:id/status', async (req, res) => {
     res.json({ success: true, message: "Status updated and history logged" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// GET all categories for the dropdown
+router.get('/categories', verifyToken, async (req, res) => {
+  try {
+    const categories = await Category.findAll(); // Adjust model name as per your setup
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to retrieve category records." });
+  }
+});
+
+router.post('/create', verifyToken, async(req, res) => {
+  const t = await sequelize.transaction(); // Start transaction
+
+  try {
+    const { assetName, serialNumber, categoryId, status } = req.body;
+    const newAsset = await Asset.create({
+      asset_name: assetName,
+      serial_number: serialNumber,
+      category_id: categoryId,
+      status: status
+    }, { transaction: t });
+
+    await t.commit(); // Save all changes
+    res.json({ message: "Asset entry created." });
+  } catch (err) {
+    await t.rollback(); // Undo everything if any step fails
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- ROUTE: SEARCH ASSETS ---
+router.get('/search', verifyToken, async (req, res) => {
+  try {
+    const { q } = req.query; // Get the search term from the URL (?q=...)
+
+    if (!q) {
+      return res.status(400).json({ message: "Search query is required." });
+    }
+
+    // Search for an exact match on serial_number OR partial match on name
+    const asset = await Asset.findOne({
+      where: {
+        [Op.or]: [
+          { serial_number: q }, // Prioritize exact match for scanners
+          { asset_name: { [Op.like]: `%${q}%` } } // Fuzzy search for manual typing
+        ]
+      },
+      include: [{ model: Category }] // Pull in category details automatically
+    });
+
+    if (!asset) {
+      return res.status(404).json({ message: "No asset matching that criteria found." });
+    }
+
+    res.json(asset);
+  } catch (err) {
+    console.error("Search Error:", err);
+    res.status(500).json({ error: "Internal engine failure during search." });
   }
 });
 
