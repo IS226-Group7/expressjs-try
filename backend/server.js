@@ -3,7 +3,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// 1. IMPORT ROUTERS (The missing piece causing your ReferenceError)
+// 1. IMPORT ROUTERS 
 import authRouter from './api/authRouter.js';
 import assetRouter from './api/assetRouter.js';
 
@@ -22,7 +22,7 @@ app.use('/api/assets', assetRouter);
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 /**
- * 4. THE SPA CATCH-ALL (The Router Fix)
+ * 4. THE Single Page App CATCH-ALL (The Router Fix)
  * We use the regex /^(?!\/api).+/ to tell Express:
  * "If the request does NOT start with /api, send the index.html."
  * This allows React Router to handle page navigation (like /dashboard).

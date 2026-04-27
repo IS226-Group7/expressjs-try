@@ -2,8 +2,20 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { UserAccount, User, UserType, UserAccountManagement } from '../models/index.js';
+import sequelize from '../config/database.js';
+import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// --- HELPER: Admin Verification Logic ---
+const verifyAdminStatus = async (userId) => {
+  const requester = await UserAccount.findOne({
+    where: { userAccount_id: userId },
+    include: [{ model: UserAccountManagement }] 
+  });
+  return requester?.User_Account_Management?.admin_flag === 1;
+};
+
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -46,18 +58,9 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// --- HELPER: Admin Verification Logic ---
-const verifyAdminStatus = async (userId) => {
-  const requester = await UserAccount.findOne({
-    where: { userAccount_id: userId },
-    include: [{ model: UserAccountManagement }] 
-  });
-  return requester?.User_Account_Management?.admin_flag === 1;
-};
-
 router.get('/users', verifyToken, async (req, res) => {
   try {
-    const isAdmin = await verifyAdminStatus(req.user.id);
+    const isAdmin = await verifyAdminStatus(req.user.userAccountId);
     if (!isAdmin) return res.status(403).json(
       { message: "ACCESS DENIED: Unauthorized elevation of privilege attempt logged" }
     );
@@ -77,12 +80,12 @@ router.get('/users', verifyToken, async (req, res) => {
 // --- ROUTE: DEACTIVATE OPERATOR ---
 router.post('/users/:id/deactivate', verifyToken, async (req, res) => {
   try {
-    const isAdmin = await verifyAdminStatus(req.user.id);
+    const isAdmin = await verifyAdminStatus(req.user.userAccountId);
     if (!isAdmin) return res.status(403).json({ message: "UNAUTHORIZED ACTION" });
 
     const { id } = req.params;
 
-    if (id == req.user.id) return res.status(403).json({ message: "Cannot deactivate self" });
+    if (id == req.user.userAccountId) return res.status(403).json({ message: "Cannot deactivate self" });
 
     // We don't delete; we set status to 'inactive' for audit trail integrity
     await UserAccount.update({ status: 'inactive' }, { where: { userAccount_id: id } });
@@ -96,7 +99,7 @@ router.post('/users/:id/deactivate', verifyToken, async (req, res) => {
 // --- ROUTE: RESET PASSWORD (ADMIN FORCED) ---
 router.post('/users/:id/reset-password', verifyToken, async (req, res) => {
   try {
-    const isAdmin = await verifyAdminStatus(req.user.id);
+    const isAdmin = await verifyAdminStatus(req.user.userAccountId);
     if (!isAdmin) return res.status(403).json({ message: "UNAUTHORIZED ACTION" });
 
     const { id } = req.params;
@@ -111,5 +114,51 @@ router.post('/users/:id/reset-password', verifyToken, async (req, res) => {
   }
 });
 
+router.post('/users/create', verifyToken, async (req, res) => {
+  const t = await sequelize.transaction(); // Start transaction
+
+  try {
+    const isAdmin = await verifyAdminStatus(req.user.userAccountId);
+    if (!isAdmin) {
+      return res.status(403).json({ message: "UNAUTHORIZED ACTION" });
+    }
+
+    const { firstName, lastName, rank, username, password, adminFlag } = req.body;
+
+    // 1. Create the Human (User_Record)
+    const newUser = await User.create({
+      first_name: firstName,
+      last_name: lastName,
+      rank: rank
+    }, { transaction: t });
+
+    // 2. Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 3. Create the Login (User_Account_Record)
+    const newAccount = await UserAccount.create({
+      user_id: newUser.user_id, // Link to the ID we just generated
+      username: username,
+      password: hashedPassword,
+      status: 'active'
+    }, { transaction: t });
+
+    // 4. Set Permissions (User_Account_Management)
+    await UserAccountManagement.create({
+      userAccount_id: newAccount.userAccount_id,
+      admin_flag: adminFlag ? 1 : 0
+    }, { transaction: t });
+
+    await t.commit(); // Save all changes
+    res.json({ message: "Operator onboarded successfully." });
+
+  } catch (err) {
+    await t.rollback(); // Undo everything if any step fails
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ message: "Username already exists in the registry." });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;
