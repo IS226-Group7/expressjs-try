@@ -61,6 +61,9 @@ UserAccountManagement.belongsTo(UserAccount, { foreignKey: 'userAccount_id' });
 User.hasMany(LogisticalRequirement, { foreignKey: 'requested_by' });
 LogisticalRequirement.belongsTo(User, { foreignKey: 'requested_by', as: 'Requester' });
 
+User.hasMany(Asset, {foreignKey: 'user_id'});
+Asset.belongsTo(User, {foreignKey: 'user_id'});
+
 export {
   sequelize,
   Asset,

@@ -31,6 +31,22 @@ export default function Dashboard() {
     componentTypeId: ''
   });
 
+  const [personnelList, setPersonnelList] = useState([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState('');
+
+  // Fetch Personnel alongside Categories/CompTypes in your useEffect
+  useEffect(() => {
+    const fetchPersonnel = async () => {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/assets/personnel/list', { headers: { 'Authorization': `Bearer ${token}` } });
+      const data = await res.json();
+      if (res.ok) setPersonnelList(data);
+    };
+    fetchPersonnel();
+  }, []);
+
+
   // --- INITIALIZATION (Sync with MariaDB) ---
   useEffect(() => {
     const syncLookups = async () => {
@@ -153,6 +169,45 @@ export default function Dashboard() {
     }
   };
 
+  const handleAssign = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/assets/assign', {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetId: asset.asset_id, personnelId: selectedUser })
+      });
+      if (res.ok) {
+        // Re-run search to refresh the asset object with new user data
+        handleSearch(); 
+        setShowAssignModal(false);
+      }
+    } catch (err) {
+      alert("Custody transfer failed.");
+    }
+  };
+
+  const handleReturnToStorage = async () => {
+    if (!window.confirm("Confirm return to storage? This clears current custody.")) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/assets/return-to-storage', {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetId: asset.asset_id })
+      });
+      
+      if (res.ok) {
+        // Refresh local asset state to show UNASSIGNED
+        setAsset(prev => ({ ...prev, User: null }));
+      }
+    } catch (err) {
+      alert("Return protocol failed.");
+    }
+  };
+
   return (
     <div className="p-4 md:p-10 max-w-5xl mx-auto min-h-screen text-white font-sans">
       
@@ -245,6 +300,38 @@ export default function Dashboard() {
             <p className="mt-2 font-mono font-black text-lg">{asset.serial_number}</p>
             <p className="text-[8px] font-bold uppercase">{asset.asset_name}</p>
           </div>
+
+          {/* CUSTODY / ASSIGNMENT */}
+          <div className="mt-10 pt-8 border-t border-gray-700">
+            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-4">Current Custody</p>
+            <div className="bg-black/30 border border-gray-800 p-6 rounded-2xl flex justify-between items-center group">
+              <div>
+                <p className="text-xs font-black uppercase tracking-tight text-white">
+                  {asset.User ? `${asset.User.rank} ${asset.User.first_name} ${asset.User.last_name}` : "UNASSIGNED / IN STORAGE"}
+                </p>
+                <p className="text-[8px] text-gray-600 font-mono mt-1 uppercase">
+                  {asset.User ? `Personnel ID: ${asset.User.user_id}` : "Ready for Field Deployment"}
+                </p>
+              </div>
+              
+              <div className="flex gap-2">
+                {asset.User && (
+                  <button 
+                    onClick={handleReturnToStorage}
+                    className="text-[9px] font-black bg-red-900/20 text-red-500 border border-red-500/30 px-4 py-2 rounded-lg uppercase hover:bg-red-600 hover:text-white transition-all"
+                  >
+                    Return to Storage
+                  </button>
+                )}
+                <button 
+                  onClick={() => setShowAssignModal(true)}
+                  className="text-[9px] font-black bg-white text-black px-4 py-2 rounded-lg uppercase hover:bg-green-500 transition-all"
+                >
+                  {asset.User ? "Transfer Custody" : "Issue Hardware"}
+                </button>
+              </div>
+            </div>
+          </div>      
         </div>
       )}
 
@@ -290,6 +377,40 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[120] p-4">
+          <div className="bg-gray-800 border border-gray-700 p-8 rounded-3xl w-full max-w-sm shadow-2xl">
+            <h3 className="text-xl font-black mb-2 uppercase italic text-blue-400">Transfer Custody</h3>
+            <p className="text-[10px] text-gray-500 uppercase font-bold mb-6">Assigning SN: {asset.serial_number}</p>
+            
+            <form onSubmit={handleAssign} className="space-y-6">
+              <div>
+                <label className="block text-[10px] text-gray-400 font-bold uppercase mb-2 ml-1">Select Personnel</label>
+                <select 
+                  className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-white text-xs font-bold outline-none focus:border-blue-500"
+                  value={selectedUser}
+                  onChange={e => setSelectedUser(e.target.value)}
+                  required
+                >
+                  <option value="">-- SELECT RECIPIENT --</option>
+                  {personnelList.map(p => (
+                    <option key={p.user_id} value={p.user_id}>
+                      {p.rank} {p.last_name}, {p.first_name} ({p.user_id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setShowAssignModal(false)} className="flex-1 py-4 bg-gray-700 rounded-xl font-bold text-[10px] uppercase text-white">Cancel</button>
+                <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-900/30">Confirm Issue</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

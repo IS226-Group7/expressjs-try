@@ -1,5 +1,5 @@
 import express, { Router } from 'express';
-import { Asset, Category, Component, ComponentType } from '../models/index.js';
+import { Asset, Category, Component, ComponentType, User } from '../models/index.js';
 import sequelize from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import { Op } from 'sequelize'; // Necessary for "LIKE" queries
@@ -87,7 +87,7 @@ router.get('/search', verifyToken, async (req, res) => {
           { asset_name: { [Op.like]: `%${q}%` } } // Fuzzy search for manual typing
         ]
       },
-      include: [{ model: Category }] // Pull in category details automatically
+      include: [{ model: Category }, {model: User}] // Pull in category details automatically
     });
 
     if (!asset) {
@@ -144,5 +144,42 @@ router.get('/:assetId/components', verifyToken, async (req, res) => {
   }
 });
 
+// PUT: Assign Asset to Personnel
+router.put('/assign', verifyToken, async (req, res) => {
+  try {
+    const { assetId, personnelId } = req.body;
+    await Asset.update(
+      { user_id: personnelId }, 
+      { where: { asset_id: assetId } }
+    );
+    res.json({ message: "Asset successfully assigned." });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update custody." });
+  }
+});
+
+// In your router: Fetch all personnel for the dropdown
+router.get('/personnel/list', verifyToken, async (req, res) => {
+  try {
+    const people = await User.findAll({ attributes: ['user_id', 'rank', 'first_name', 'last_name'] });
+    res.json(people);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch registry." });
+  }
+});
+
+// PUT: Return Asset to Storage (Clear Assignment)
+router.put('/return-to-storage', verifyToken, async (req, res) => {
+  try {
+    const { assetId } = req.body;
+    await Asset.update(
+      { user_id: null }, 
+      { where: { asset_id: assetId } }
+    );
+    res.json({ message: "Asset returned to storage manifest." });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to clear custody." });
+  }
+});
 
 export default router;
