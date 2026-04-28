@@ -39,7 +39,7 @@ Component.hasMany(ComponentHistory, { foreignKey: 'component_id' });
 ComponentHistory.belongsTo(Component, { foreignKey: 'component_id' });
 
 ComponentType.hasMany(Component, {foreignKey: 'component_type_id'});
-Component.belongsTo(ComponentType, {foreignKey: 'componentType_id' });
+Component.belongsTo(ComponentType, {foreignKey: 'component_type_id' });
 
 // --- USER & ACCOUNT ASSOCIATIONS ---
 
@@ -73,5 +73,6 @@ export {
   UserAccount,
   UserAccountManagement,
   UserType,
+  ComponentType,
   LogisticalRequirement
 };

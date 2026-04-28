@@ -1,5 +1,5 @@
 import express, { Router } from 'express';
-import { Asset, Category } from '../models/index.js';
+import { Asset, Category, Component, ComponentType } from '../models/index.js';
 import sequelize from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import { Op } from 'sequelize'; // Necessary for "LIKE" queries
@@ -98,6 +98,49 @@ router.get('/search', verifyToken, async (req, res) => {
   } catch (err) {
     console.error("Search Error:", err);
     res.status(500).json({ error: "Internal engine failure during search." });
+  }
+});
+
+// POST: Install a component into an asset
+router.post('/install-component', verifyToken, async (req, res) => {
+  try {
+    const { assetId, componentName, componentTypeId } = req.body;
+    
+    // Using the simplified 'Component' model
+    const newComponent = await Component.create({
+      asset_id: assetId, // Updated column name
+      component_details: componentName,
+      component_type_id: componentTypeId
+      // serial_number and status removed as per new schema
+    });
+
+    res.status(201).json({ message: "Component linked.", component: newComponent });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to link component to chassis." });
+  }
+});
+
+// GET all component types for the dropdown
+router.get('/component-types', verifyToken, async (req, res) => {
+  try {
+    const compoTypes = await ComponentType.findAll(); // Adjust model name as per your setup
+    res.json(compoTypes);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to retrieve component type records." });
+  }
+});
+
+// GET components for a specific asset
+router.get('/:assetId/components', verifyToken, async (req, res) => {
+  try {
+    const components = await Component.findAll({
+      where: { asset_id: req.params.assetId },
+      include: [{ model: ComponentType }] // e.g., "Storage", "Memory"
+    });
+    res.json(components);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to retrieve internal manifest." });
   }
 });
 

@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
-export default sequelize.define('Component_Record', {
+export default sequelize.define('Component', {
   component_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   component_details: { type: DataTypes.STRING, allowNull: false },
   component_type_id: { type: DataTypes.INTEGER, allowNull: false },
