@@ -180,19 +180,19 @@ export default function Dashboard() {
             <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-4">Quick Status Update</p>
             <div className="grid grid-cols-3 gap-3">
               <button 
-                onClick={() => updateStatus(asset.id, 'Workable')}
+                onClick={() => updateStatus(asset.asset_id, 'Workable')}
                 className="py-3 bg-gray-900/50 hover:bg-green-600 text-green-500 hover:text-black border border-green-900/50 rounded-xl text-[10px] font-black uppercase transition-all"
               >
                 Mark Workable
               </button>
               <button 
-                onClick={() => updateStatus(asset.id, 'Under Repair')}
+                onClick={() => updateStatus(asset.asset_id, 'Under Repair')}
                 className="py-3 bg-gray-900/50 hover:bg-yellow-600 text-yellow-500 hover:text-black border border-yellow-900/50 rounded-xl text-[10px] font-black uppercase transition-all"
               >
                 Set Under Repair
               </button>
               <button 
-                onClick={() => updateStatus(asset.id, 'BER')}
+                onClick={() => updateStatus(asset.asset_id, 'BER')}
                 className="py-3 bg-gray-900/50 hover:bg-red-600 text-red-500 hover:text-white border border-red-900/50 rounded-xl text-[10px] font-black uppercase transition-all"
               >
                 Set BER

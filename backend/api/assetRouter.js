@@ -30,6 +30,16 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
   }
 });
 
+router.put('/update-status', verifyToken, async (req, res) => {
+  try {
+    const { id, status } = req.body;
+    await Asset.update({ status }, { where: { 'asset_id' : id } });
+    res.json({ message: "Status updated successfully." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET all categories for the dropdown
 router.get('/categories', verifyToken, async (req, res) => {
   try {
