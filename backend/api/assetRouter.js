@@ -104,12 +104,12 @@ router.get('/search', verifyToken, async (req, res) => {
 // POST: Install a component into an asset
 router.post('/install-component', verifyToken, async (req, res) => {
   try {
-    const { assetId, componentName, componentTypeId } = req.body;
+    const { assetId, component_details, componentTypeId } = req.body;
     
     // Using the simplified 'Component' model
     const newComponent = await Component.create({
       asset_id: assetId, // Updated column name
-      component_details: componentName,
+      component_details: component_details,
       component_type_id: componentTypeId
       // serial_number and status removed as per new schema
     });
@@ -143,5 +143,6 @@ router.get('/:assetId/components', verifyToken, async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve internal manifest." });
   }
 });
+
 
 export default router;
