@@ -4,18 +4,9 @@ import jwt from 'jsonwebtoken';
 import { UserAccount, User, UserType, UserAccountManagement } from '../models/index.js';
 import sequelize from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
+import { verifyAdminStatus } from '../helpers/admin.js';
 
 const router = express.Router();
-
-// --- HELPER: Admin Verification Logic ---
-const verifyAdminStatus = async (userId) => {
-  const requester = await UserAccount.findOne({
-    where: { userAccount_id: userId },
-    include: [{ model: UserAccountManagement }] 
-  });
-  return requester?.User_Account_Management?.admin_flag === 1;
-};
-
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -58,13 +49,8 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/users', verifyToken, async (req, res) => {
+router.get('/users', verifyToken, verifyAdminStatus, async (req, res) => {
   try {
-    const isAdmin = await verifyAdminStatus(req.user.userAccountId);
-    if (!isAdmin) return res.status(403).json(
-      { message: "ACCESS DENIED: Unauthorized elevation of privilege attempt logged" }
-    );
-
     // If verified, proceed to fetch the registry
     const users = await UserAccount.findAll({
       include: [{ model: User }],
@@ -78,11 +64,8 @@ router.get('/users', verifyToken, async (req, res) => {
 });
 
 // --- ROUTE: DEACTIVATE OPERATOR ---
-router.post('/users/:id/deactivate', verifyToken, async (req, res) => {
+router.post('/users/:id/deactivate', verifyToken, verifyAdminStatus, async (req, res) => {
   try {
-    const isAdmin = await verifyAdminStatus(req.user.userAccountId);
-    if (!isAdmin) return res.status(403).json({ message: "UNAUTHORIZED ACTION" });
-
     const { id } = req.params;
 
     if (id == req.user.userAccountId) return res.status(403).json({ message: "Cannot deactivate self" });
@@ -97,11 +80,8 @@ router.post('/users/:id/deactivate', verifyToken, async (req, res) => {
 });
 
 // --- ROUTE: RESET PASSWORD (ADMIN FORCED) ---
-router.post('/users/:id/reset-password', verifyToken, async (req, res) => {
+router.post('/users/:id/reset-password', verifyToken, verifyAdminStatus, async (req, res) => {
   try {
-    const isAdmin = await verifyAdminStatus(req.user.userAccountId);
-    if (!isAdmin) return res.status(403).json({ message: "UNAUTHORIZED ACTION" });
-
     const { id } = req.params;
     const { newPassword } = req.body; // Usually a temporary password like 'Reset123!'
     
@@ -118,11 +98,6 @@ router.post('/users/create', verifyToken, async (req, res) => {
   const t = await sequelize.transaction(); // Start transaction
 
   try {
-    const isAdmin = await verifyAdminStatus(req.user.userAccountId);
-    if (!isAdmin) {
-      return res.status(403).json({ message: "UNAUTHORIZED ACTION" });
-    }
-
     const { firstName, lastName, rank, username, password, adminFlag } = req.body;
 
     // 1. Create the Human (User_Record)
