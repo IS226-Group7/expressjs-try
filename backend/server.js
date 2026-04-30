@@ -1,14 +1,27 @@
 import 'dotenv/config';
+import { sequelize } from './config/database.js';
+import { seedAdmin } from './seed.js';
+
 import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import serverless from 'serverless-http';
+const app = express();
+
+app.get('/api/test-db', async (req, res) => {
+  /*await seedAdmin();*/
+  
+  try {
+    // A simple query to check connectivity
+    await sequelize.authenticate(); 
+    res.json({ status: "success", message: "Connected to MariaDB RDS!" });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+  
+});
 
 // 1. IMPORT ROUTERS 
 import authRouter from './api/authRouter.js';
 import assetRouter from './api/assetRouter.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const app = express();
 
 app.use(express.json());
 
@@ -17,21 +30,4 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/assets', assetRouter);
 
-// 3. STATIC FILES (The Built Frontend)
-// This serves your JS, CSS, and Images from the frontend/dist folder
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-/**
- * 4. THE Single Page App CATCH-ALL (The Router Fix)
- * We use the regex /^(?!\/api).+/ to tell Express:
- * "If the request does NOT start with /api, send the index.html."
- * This allows React Router to handle page navigation (like /dashboard).
- */
-app.get(/^(?!\/api).+/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Unified Engine running on http://localhost:${PORT}`);
-});
+export const handler = serverless(app);

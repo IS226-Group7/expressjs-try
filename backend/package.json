@@ -30,6 +30,7 @@
     "pdfkit": "^0.18.0",
     "qrcode": "^1.5.4",
     "read-excel-file": "^8.0.3",
-    "sequelize": "^6.37.8"
+    "sequelize": "^6.37.8",
+    "serverless-http": "^4.0.0"
   }
 }
