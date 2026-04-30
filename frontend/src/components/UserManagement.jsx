@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../utils/api.js';
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -22,9 +23,7 @@ export default function UserManagement() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/auth/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await api('/api/auth/users');
       const data = await res.json();
       if (res.ok) setUsers(data);
       else setError(data.message || 'Access Denied');
@@ -39,12 +38,8 @@ export default function UserManagement() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/auth/users/create', {
+      const res = await api('/api/auth/users/create', {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
         body: JSON.stringify(formData)
       });
 
@@ -65,9 +60,8 @@ export default function UserManagement() {
     if (!window.confirm("⚠️ REVOKE ACCESS: Are you sure?")) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/auth/users/${userId}/deactivate`, {
+      const res = await api(`/api/auth/users/${userId}/deactivate`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) fetchUsers();
     } catch (err) {

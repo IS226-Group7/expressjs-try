@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import { api } from '../utils/api.js';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -34,9 +35,9 @@ export default function Dashboard() {
       const token = localStorage.getItem('token');
       try {
         const [catRes, compTypeRes, persRes] = await Promise.all([
-          fetch('/api/assets/categories', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('/api/assets/component-types', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('/api/assets/personnel/list', { headers: { 'Authorization': `Bearer ${token}` } })
+          api('/api/assets/categories'),
+          api('/api/assets/component-types'),
+          api('/api/assets/personnel/list')
         ]);
 
         if (catRes.ok) {
@@ -69,16 +70,12 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem('token');
       // Use searchVal here instead of query
-      const res = await fetch(`/api/assets/search?q=${searchVal}`, { 
-        headers: { 'Authorization': `Bearer ${token}` } 
-      });
+      const res = await api(`/api/assets/search?q=${searchVal}`);
       
       const data = await res.json();
       if (res.ok) {
         setAsset(data);
-        const compRes = await fetch(`/api/assets/${data.asset_id}/components`, { 
-          headers: { 'Authorization': `Bearer ${token}` } 
-        });
+        const compRes = await api(`/api/assets/${data.asset_id}/components`);
         setComponents(await compRes.json());
       } else { 
         setError('Asset not found.'); 
@@ -96,9 +93,8 @@ export default function Dashboard() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/assets/create', {
+      const res = await api('/api/assets/create', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           asset_name: formData.assetName,
           serial_number: formData.serialNumber,
@@ -116,9 +112,8 @@ export default function Dashboard() {
   const updateStatus = async (assetId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/assets/update-status`, {
+      const res = await api(`/api/assets/update-status`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: assetId, status: newStatus })
       });
       if (res.ok) {
@@ -131,9 +126,8 @@ export default function Dashboard() {
   const handleReturnToStorage = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/assets/return-to-storage', {
+      const res = await api('/api/assets/return-to-storage', {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ assetId: asset.asset_id })
       });
       if (res.ok) setAsset(prev => ({ ...prev, user_id: null, User: null }));
@@ -144,9 +138,8 @@ export default function Dashboard() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/assets/assign', {
+      const res = await api('/api/assets/assign', {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ assetId: asset.asset_id, personnelId: selectedUser })
       });
       if (res.ok) { setShowAssignModal(false); handleSearch(); }
@@ -157,7 +150,7 @@ export default function Dashboard() {
   const openCompModal = async () => {
     setShowCompModal(true);
     const token = localStorage.getItem('token');
-    const res = await fetch('/api/assets/components/available', { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await api('/api/assets/components/available');
     if (res.ok) setAvailableParts(await res.json());
   };
 
@@ -165,9 +158,8 @@ export default function Dashboard() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/assets/install-component', {
+      const res = await api('/api/assets/install-component', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ assetId: asset.asset_id, ...compFormData })
       });
       if (res.ok) { handleSearch(); setShowCompModal(false); setCompFormData({component_details: '', componentTypeId: compTypes[0]?.component_type_id}); }
@@ -178,9 +170,8 @@ export default function Dashboard() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/assets/relink-component', {
+      const res = await api('/api/assets/relink-component', {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ componentId: selectedHarvestedId, assetId: asset.asset_id })
       });
       if (res.ok) { handleSearch(); setShowCompModal(false); }
@@ -191,9 +182,8 @@ export default function Dashboard() {
     if (!window.confirm("Harvest part to stock?")) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/assets/harvest-component', {
+      const res = await api('/api/assets/harvest-component', {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ componentId: compId })
       });
       if (res.ok) setComponents(prev => prev.filter(c => c.component_id !== compId));
@@ -204,9 +194,8 @@ export default function Dashboard() {
     if (!window.confirm("Permanently Dispose and log to history?")) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/assets/dispose-component/${compId}`, {
+      const res = await api(`/api/assets/dispose-component/${compId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) setComponents(prev => prev.filter(c => c.component_id !== compId));
     } catch (err) { alert("Disposal failure."); }

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../utils/api.js';
+
 
 export default function Login() {
   const [creds, setCreds] = useState({ username: '', password: '' });
@@ -14,9 +16,8 @@ export default function Login() {
 
     try {
       // Pointing to the Express engine via relative path
-      const res = await fetch('/api/auth/login', {
+      const res = await api('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(creds)
       });
 
