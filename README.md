@@ -55,5 +55,5 @@ node seed.js
 
 # run the app with the frontend built
 ```
-node app.js
+node server.js
 ```
