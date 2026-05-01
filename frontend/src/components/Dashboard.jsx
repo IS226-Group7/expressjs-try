@@ -32,25 +32,21 @@ export default function Dashboard() {
   // --- INITIAL LOOKUPS ---
   useEffect(() => {
     const syncData = async () => {
-      const token = localStorage.getItem('token');
-      try {
+       try {
         const [catRes, compTypeRes, persRes] = await Promise.all([
           api('/api/assets/categories'),
           api('/api/assets/component-types'),
           api('/api/assets/personnel/list')
         ]);
 
-        if (catRes.ok) {
-            const data = await catRes.json();
-            setCategories(data);
-            if(data.length > 0) setFormData(prev => ({...prev, categoryId: data[0].category_id}));
-        }
-        if (compTypeRes.ok) {
-            const data = await compTypeRes.json();
-            setCompTypes(data);
-            if(data.length > 0) setCompFormData(prev => ({...prev, componentTypeId: data[0].component_type_id}));
-        }
-        if (persRes.ok) setPersonnelList(await persRes.json());
+        setCategories(catRes);
+        if(catRes.length > 0) setFormData(prev => ({...prev, categoryId: catRes[0].category_id}));
+
+        setCompTypes(compTypeRes);
+        if(compTypeRes.length > 0) setCompFormData(prev => ({...prev, componentTypeId: compTypeRes[0].component_type_id}));
+
+        setPersonnelList(persRes);
+
       } catch (err) { console.error("Sync Error:", err); }
     };
     syncData();
@@ -68,21 +64,17 @@ export default function Dashboard() {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
       // Use searchVal here instead of query
-      const res = await api(`/api/assets/search?q=${searchVal}`);
+      const data = await api(`/api/assets/search?q=${searchVal}`);
       
-      const data = await res.json();
-      if (res.ok) {
-        setAsset(data);
-        const compRes = await api(`/api/assets/${data.asset_id}/components`);
-        setComponents(await compRes.json());
-      } else { 
-        setError('Asset not found.'); 
-        setAsset(null); 
-      }
+      setAsset(data);
+      const compRes = await api(`/api/assets/${data.asset_id}/components`);
+      setComponents(compRes);
+
     } catch (err) { 
-      setError('Connection failure.'); 
+       setError('Asset not found.'); 
+       setAsset(null); 
+       setComponents(null);
     } finally { 
       setLoading(false); 
     }
@@ -92,112 +84,106 @@ export default function Dashboard() {
   const handleCreateAsset = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
       const res = await api('/api/assets/create', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           asset_name: formData.assetName,
           serial_number: formData.serialNumber,
           category_id: formData.categoryId,
           status: formData.status
-        })
+        }
       });
-      if (res.ok) {
-        setShowAddModal(false);
-        handleSearch(null, formData.serialNumber);
-      }
+      setShowAddModal(false);
+      handleSearch(null, formData.serialNumber);
     } catch (err) { alert("Registration failed."); }
   };
 
   const updateStatus = async (assetId, newStatus) => {
     try {
-      const token = localStorage.getItem('token');
       const res = await api(`/api/assets/update-status`, {
         method: 'PUT',
-        body: JSON.stringify({ id: assetId, status: newStatus })
+        body: { id: assetId, status: newStatus }
       });
-      if (res.ok) {
-        setAsset(prev => ({ ...prev, status: newStatus }));
-        if (newStatus === 'BER') handleReturnToStorage();
-      }
+      setAsset(prev => ({ ...prev, status: newStatus }));
+      if (newStatus === 'BER') handleReturnToStorage();
     } catch (err) { alert("Status update failed."); }
   };
 
   const handleReturnToStorage = async () => {
     try {
-      const token = localStorage.getItem('token');
       const res = await api('/api/assets/return-to-storage', {
         method: 'PUT',
-        body: JSON.stringify({ assetId: asset.asset_id })
+        body: { assetId: asset.asset_id }
       });
-      if (res.ok) setAsset(prev => ({ ...prev, user_id: null, User: null }));
+      setAsset(prev => ({ ...prev, user_id: null, User: null }));
     } catch (err) { console.error("Custody reset failed"); }
   };
 
   const handleAssign = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
       const res = await api('/api/assets/assign', {
         method: 'PUT',
-        body: JSON.stringify({ assetId: asset.asset_id, personnelId: selectedUser })
+        body: { assetId: asset.asset_id, personnelId: selectedUser }
       });
-      if (res.ok) { setShowAssignModal(false); handleSearch(); }
+      setShowAssignModal(false); handleSearch();
     } catch (err) { alert("Assignment failed."); }
   };
 
   // --- COMPONENT ACTIONS ---
   const openCompModal = async () => {
     setShowCompModal(true);
-    const token = localStorage.getItem('token');
-    const res = await api('/api/assets/components/available');
-    if (res.ok) setAvailableParts(await res.json());
+    try {
+      const res = await api('/api/assets/components/available');
+      setAvailableParts(res);
+    } catch (err) {
+      setAvailableParts(null);
+    }
   };
 
   const handleNewComponent = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
       const res = await api('/api/assets/install-component', {
         method: 'POST',
-        body: JSON.stringify({ assetId: asset.asset_id, ...compFormData })
+        body: { assetId: asset.asset_id, ...compFormData }
       });
-      if (res.ok) { handleSearch(); setShowCompModal(false); setCompFormData({component_details: '', componentTypeId: compTypes[0]?.component_type_id}); }
+      handleSearch(); 
+      setShowCompModal(false); 
+      setCompFormData({component_details: '', componentTypeId: compTypes[0]?.component_type_id});
     } catch (err) { alert("Install failed."); }
   };
 
   const handleRelink = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
       const res = await api('/api/assets/relink-component', {
         method: 'PUT',
-        body: JSON.stringify({ componentId: selectedHarvestedId, assetId: asset.asset_id })
+        body: { componentId: selectedHarvestedId, assetId: asset.asset_id }
       });
-      if (res.ok) { handleSearch(); setShowCompModal(false); }
+      handleSearch();
+      setShowCompModal(false);
     } catch (err) { alert("Relink failed."); }
   };
 
   const handleHarvest = async (compId) => {
     if (!window.confirm("Harvest part to stock?")) return;
     try {
-      const token = localStorage.getItem('token');
       const res = await api('/api/assets/harvest-component', {
         method: 'PUT',
-        body: JSON.stringify({ componentId: compId })
+        body: { componentId: compId }
       });
-      if (res.ok) setComponents(prev => prev.filter(c => c.component_id !== compId));
+      setComponents(prev => prev.filter(c => c.component_id !== compId));
     } catch (err) { alert("Harvest failure."); }
   };
 
   const handleDispose = async (compId) => {
     if (!window.confirm("Permanently Dispose and log to history?")) return;
     try {
-      const token = localStorage.getItem('token');
       const res = await api(`/api/assets/dispose-component/${compId}`, {
         method: 'DELETE',
       });
-      if (res.ok) setComponents(prev => prev.filter(c => c.component_id !== compId));
+      setComponents(prev => prev.filter(c => c.component_id !== compId));
     } catch (err) { alert("Disposal failure."); }
   };
 

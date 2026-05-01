@@ -18,24 +18,21 @@ export default function Login() {
       // Pointing to the Express engine via relative path
       const res = await api('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify(creds)
+        body: creds
       });
 
-      const data = await res.json();
+      const data = res;
 
-      if (res.ok) {
-        // 1. Store the JWT for future API calls
-        localStorage.setItem('token', data.token);
-        // 2. Store user info for the Dashboard display
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // 3. Move to the Dashboard
-        navigate('/dashboard');
-      } else {
-        setError(data.message || 'Invalid Credentials');
-      }
+      // 1. Store the JWT for future API calls
+      localStorage.setItem('token', data.token);
+      // 2. Store user info for the Dashboard display
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // 3. Move to the Dashboard
+      navigate('/dashboard');
     } catch (err) {
       setError('Engine Connection Error. Check Server Console.');
+      // setError(err.message);
     } finally {
       setLoading(false);
     }
