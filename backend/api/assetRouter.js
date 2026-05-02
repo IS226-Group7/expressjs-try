@@ -10,16 +10,6 @@ import { Op } from 'sequelize'; // Necessary for "LIKE" queries
 
 const router = express.Router();
 
-// GET all assets with Category and User details (JOIN logic)
-router.get('/', verifyToken, verifyAdminStatus, async (req, res) => {
-  try {
-    // Example: SELECT * FROM Asset_Record JOIN Asset_Category_Record...
-    res.json({ message: "List of assets with categories" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 router.put('/update-status', verifyToken, verifyAdminStatus, async (req, res) => {
   try {
     const { id, status } = req.body;
