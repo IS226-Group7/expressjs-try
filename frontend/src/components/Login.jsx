@@ -31,8 +31,8 @@ export default function Login() {
       // 3. Move to the Dashboard
       navigate('/dashboard');
     } catch (err) {
-      setError('Engine Connection Error. Check Server Console.');
-      // setError(err.message);
+      // setError('Engine Connection Error. Check Server Console.');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
