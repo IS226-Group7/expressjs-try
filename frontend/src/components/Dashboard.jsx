@@ -127,7 +127,7 @@ export default function Dashboard() {
         method: 'PUT',
         body: { assetId: asset.asset_id, personnelId: selectedUser }
       });
-      setShowAssignModal(false); handleSearch();
+      setShowAssignModal(false); handleSearch(null, asset.asset_id);
     } catch (err) { alert("Assignment failed."); }
   };
 
