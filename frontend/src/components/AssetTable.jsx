@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Search, Monitor, MapPin, QrCode } from 'lucide-react';
+import { api } from '../utils/api.js';
 
 const AssetTable = () => {
   const [assets, setAssets] = useState([]);
@@ -9,9 +9,10 @@ const AssetTable = () => {
 
   // Fetch data using the search route we built
   const fetchAssets = async () => {
+
     setLoading(true);
     try {
-      const res = await axios.get(`/api/assets/search?q=${searchTerm}`);
+      const res = await api(`/api/assets/search?q=${searchTerm}`);
       setAssets(res.data);
     } catch (err) {
       console.error("Search failed", err);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../utils/api.js';
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -21,15 +22,10 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/auth/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (res.ok) setUsers(data);
-      else setError(data.message || 'Access Denied');
+      const data = await api('/api/auth/users');
+      setUsers(data);
     } catch (err) {
-      setError('Engine Connection Failure');
+      setError('Access Denied');
     } finally {
       setLoading(false);
     }
@@ -38,38 +34,26 @@ export default function UserManagement() {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/auth/users/create', {
+      const res = await api('/api/auth/users/create', {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify(formData)
+        body: formData
       });
 
-      if (res.ok) {
-        setShowModal(false);
-        setFormData({ firstName: '', lastName: '', rank: 'CIV', username: '', password: '', adminFlag: false });
-        fetchUsers();
-      } else {
-        const d = await res.json();
-        alert(d.message);
-      }
+      setShowModal(false);
+      setFormData({ firstName: '', lastName: '', rank: 'CIV', username: '', password: '', adminFlag: false });
+      fetchUsers();
     } catch (err) {
-      alert("Onboarding failed.");
+      alert(err,message);
     }
   };
 
   const handleDeactivate = async (userId) => {
     if (!window.confirm("⚠️ REVOKE ACCESS: Are you sure?")) return;
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/auth/users/${userId}/deactivate`, {
+      const res = await api(`/api/auth/users/${userId}/deactivate`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.ok) fetchUsers();
+      fetchUsers();
     } catch (err) {
       alert("Action failed.");
     }

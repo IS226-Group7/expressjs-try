@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../utils/api.js';
+
 
 export default function Login() {
   const [creds, setCreds] = useState({ username: '', password: '' });
@@ -14,27 +16,23 @@ export default function Login() {
 
     try {
       // Pointing to the Express engine via relative path
-      const res = await fetch('/api/auth/login', {
+      const res = await api('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(creds)
+        body: creds
       });
 
-      const data = await res.json();
+      const data = res;
 
-      if (res.ok) {
-        // 1. Store the JWT for future API calls
-        localStorage.setItem('token', data.token);
-        // 2. Store user info for the Dashboard display
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // 3. Move to the Dashboard
-        navigate('/dashboard');
-      } else {
-        setError(data.message || 'Invalid Credentials');
-      }
+      // 1. Store the JWT for future API calls
+      localStorage.setItem('token', data.token);
+      // 2. Store user info for the Dashboard display
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // 3. Move to the Dashboard
+      navigate('/dashboard');
     } catch (err) {
-      setError('Engine Connection Error. Check Server Console.');
+      // setError('Engine Connection Error. Check Server Console.');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
