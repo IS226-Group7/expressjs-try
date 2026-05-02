@@ -10,16 +10,6 @@ import { Op } from 'sequelize'; // Necessary for "LIKE" queries
 
 const router = express.Router();
 
-// GET all assets with Category and User details (JOIN logic)
-router.get('/', verifyToken, verifyAdminStatus, async (req, res) => {
-  try {
-    // Example: SELECT * FROM Asset_Record JOIN Asset_Category_Record...
-    res.json({ message: "List of assets with categories" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 router.put('/update-status', verifyToken, verifyAdminStatus, async (req, res) => {
   try {
     const { id, status } = req.body;
@@ -281,6 +271,33 @@ router.get('/components/available', verifyToken, verifyAdminStatus, async (req, 
   } catch (err) {
     console.error("Error fetching stock:", err);
     res.status(500).json({ error: "Failed to fetch spare parts manifest." });
+  }
+});
+
+router.get('/list', async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 25);
+    const offset = (page - 1) * limit;
+
+    // Split the calls to avoid the internal "query.run" crash
+    const count = await Asset.count();
+    const rows = await Asset.findAll({
+      limit,
+      offset,
+      order: [['asset_id', 'DESC']],
+      include: [Category, User]
+    });
+
+    res.json({
+      assets: rows,
+      totalPages: Math.ceil(count / limit),
+      totalItems: count,
+      currentPage: page
+    });
+  } catch (err) {
+    console.error("MariaDB Pagination Error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 

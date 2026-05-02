@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
-const AcquisitionType = sequelize.define('Acquisition_Type_Record', {
+const AcquisitionType = sequelize.define('AcquisitionType', {
   acquisitionType_id: {
     type: DataTypes.INTEGER,
     primaryKey: true,

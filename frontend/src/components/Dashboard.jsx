@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../utils/api.js';
+import ScannerOverlay from './ScannerOverlay';
+import AssetTable from './AssetTable';
 
 export default function Dashboard() {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -30,6 +32,11 @@ export default function Dashboard() {
   const [selectedUser, setSelectedUser] = useState('');
   const [selectedHarvestedId, setSelectedHarvestedId] = useState('');
 
+  const [viewMode, setViewMode] = useState('search'); // 'search' or 'list'
+  const [allAssets, setAllAssets] = useState([]);
+  const [pagination, setPagination] = useState({ current: 1, total: 1 });
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
   // --- INITIAL LOOKUPS ---
   useEffect(() => {
     const syncData = async () => {
@@ -52,6 +59,26 @@ export default function Dashboard() {
     };
     syncData();
   }, []);
+
+  const fetchAllAssets = async (page = 1) => {
+    setLoading(true);
+    try {
+      const data = await api(`/api/assets/list?page=${page}&limit=5`);
+      setAllAssets(data.assets);
+      setPagination({ current: data.currentPage, total: data.totalPages });
+      setViewMode('list');
+    } catch (err) {
+      setError('Registry unavailable.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleScanResult = (result) => {
+    setIsScannerOpen(false);
+    setQuery(result);
+    handleSearch(null, result);
+  };
 
   // --- SEARCH LOGIC ---
   const handleSearch = async (e, manualQuery = null) => {
@@ -194,110 +221,149 @@ export default function Dashboard() {
       {/* HEADER */}
       <div className="flex justify-between items-center max-w-5xl mx-auto mb-10 border-b border-gray-800 pb-6">
         <h2 className="text-2xl font-black uppercase tracking-tighter italic">Command <span className="text-green-500">Center</span></h2>
-        { currentUser.isAdmin && (
-          <button onClick={() => setShowAddModal(true)} className="bg-green-600 hover:bg-green-500 text-black px-6 py-2 rounded-lg font-black text-[10px] uppercase transition-all shadow-lg shadow-green-900/20">+ Register Asset</button>
-        )}
-      </div>
-
-      {/* SEARCH BOX */}
-      <div className="max-w-2xl mx-auto mb-12">
-        <form onSubmit={handleSearch} className="relative">
-          <input 
-            type="text" value={query} onChange={(e) => setQuery(e.target.value)}
-            placeholder="SCAN TAG OR SERIAL..."
-            className="w-full bg-gray-900 border-2 border-gray-800 focus:border-green-500 p-6 rounded-2xl text-2xl font-mono text-green-400 outline-none uppercase shadow-2xl transition-all"
-            autoFocus
-          />
-          {loading && <div className="absolute right-6 top-1/2 -translate-y-1/2 animate-spin h-6 w-6 border-2 border-green-500 border-t-transparent rounded-full"></div>}
-        </form>
-        {error && <p className="text-red-500 text-center mt-4 font-bold uppercase text-xs tracking-widest">{error}</p>}
-      </div>
-
-      {asset && (
-        <div className="max-w-5xl mx-auto bg-gray-800 border border-gray-700 rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
-          
-          {/* REFINED HEADER (No Print) */}
-          <div className="flex flex-col md:flex-row justify-between items-start border-b border-gray-800 pb-8 gap-6">
-            <div>
-              <h3 className="text-4xl font-black uppercase tracking-tight mb-2 leading-none text-white">
-                {asset.asset_name}
-              </h3>
-              <div className="flex items-center gap-3">
-                <p className="text-green-500 font-mono text-lg tracking-widest selection:bg-green-500 selection:text-black">
-                  {asset.serial_number}
-                </p>
-                {/* Simple copy button is more useful than a print button now */}
-                <button 
-                  onClick={() => navigator.clipboard.writeText(asset.serial_number)}
-                  className="text-[10px] bg-gray-900 hover:bg-gray-700 text-gray-400 px-2 py-1 rounded uppercase border border-gray-700 transition-all"
-                >
-                  Copy SN
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white p-3 rounded-2xl shadow-xl shadow-green-500/10">
-              <QRCodeSVG value={asset.serial_number} size={90} />
-            </div>
-          </div>
-
-          {/* MIDDLE SECTION: CUSTODY & TRIAGE */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-10">
-            
-            {/* CUSTODY BOX */}
-            <div className="space-y-4">
-              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em]">Chain of Custody</p>
-              <div className="bg-black/40 border border-gray-700 p-6 rounded-2xl flex justify-between items-center group">
-                <div>
-                  <p className="text-xs font-black uppercase text-white">{asset.User ? `${asset.User.rank} ${asset.User.first_name} ${asset.User.last_name}` : "UNASSIGNED / IN STORAGE"}</p>
-                  <p className="text-[8px] text-gray-600 font-mono mt-1 uppercase">{asset.User ? `ID: ${asset.user_id}` : "Warehouse Master Manifest"}</p>
-                </div>
-                <div className="flex gap-2">
-                  {asset.User && <button onClick={handleReturnToStorage} className="text-[9px] font-black bg-red-900/20 text-red-500 border border-red-500/30 px-4 py-2 rounded-lg uppercase hover:bg-red-600 transition-all">Return</button>}
-                  <button onClick={() => setShowAssignModal(true)} className="text-[9px] font-black bg-white text-black px-4 py-2 rounded-lg uppercase hover:bg-green-500 transition-all">{asset.User ? "Transfer" : "Issue"}</button>
-                </div>
-              </div>
-            </div>
-
-            {/* TRIAGE BOX */}
-            <div className="space-y-4">
-              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em]">Quick Triage</p>
-              <div className="grid grid-cols-3 gap-2">
-                {['Workable', 'Under Repair', 'BER'].map(st => (
-                  <button key={st} onClick={() => updateStatus(asset.asset_id, st)}
-                    className={`py-3 rounded-xl text-[10px] font-black uppercase transition-all border ${asset.status === st ? 'bg-white text-black border-white' : 'bg-gray-900 text-gray-400 border-gray-700 hover:border-gray-500'}`}>{st}</button>
-                ))}
-              </div>
-            </div>
-
-          </div>
-
-          {/* BOTTOM SECTION: MANIFEST */}
-          <div className="mt-12 pt-8 border-t border-gray-700">
-            <div className="flex justify-between items-center mb-6">
-              <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Internal Manifest</h4>
-              <button onClick={openCompModal} className="text-[9px] font-black text-green-500 border border-green-500/30 px-3 py-1 rounded uppercase hover:bg-green-500 hover:text-black transition-all">+ Link Hardware</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {components.map(comp => (
-                <div key={comp.component_id} className="bg-black/30 border border-gray-800 p-4 rounded-xl flex justify-between items-center group">
-                  <div>
-                    <p className="text-xs font-bold uppercase">{comp.component_details}</p>
-                    <p className="text-[8px] text-gray-400 font-mono mt-1">{comp.ComponentType?.component_type_name} — ID: {comp.component_id}</p>
-                  </div>
-                  { currentUser.isAdmin && (
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                      <button onClick={() => handleHarvest(comp.component_id)} className="text-[8px] font-black text-blue-400 bg-blue-900/20 px-2 py-1 rounded uppercase border border-blue-500/20">Harvest</button>
-                      <button onClick={() => handleDispose(comp.component_id)} className="text-[8px] font-black text-red-500 bg-red-900/20 px-2 py-1 rounded uppercase border border-red-500/20">Dispose</button>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {components.length === 0 && <div className="col-span-2 py-10 text-center border-2 border-dashed border-gray-800 rounded-2xl text-[10px] text-gray-700 uppercase font-bold tracking-[0.5em]">No Internals Logged</div>}
-            </div>
-          </div>
+        <div className="flex gap-4">
+          <button 
+            onClick={() => viewMode === 'search' ? fetchAllAssets() : setViewMode('search')}
+            className="text-[10px] font-black uppercase border border-gray-700 px-4 py-2 rounded-lg hover:border-green-500 transition-all"
+          >
+            {viewMode === 'search' ? '📂 View All' : '🔍 Back to Search'}
+          </button>        
+          { currentUser.isAdmin && (
+            <button onClick={() => setShowAddModal(true)} className="bg-green-600 hover:bg-green-500 text-black px-6 py-2 rounded-lg font-black text-[10px] uppercase transition-all shadow-lg shadow-green-900/20">+ Register Asset</button>
+          )}
         </div>
+      </div>
+
+      { viewMode === 'search' ? (
+        <>
+        {/* SEARCH BOX WITH SCAN BUTTON */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <form onSubmit={handleSearch} className="relative">
+            <input 
+              type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+              placeholder="SCAN TAG OR SERIAL..."
+              className="w-full bg-gray-900 border-2 border-gray-800 focus:border-green-500 p-6 rounded-2xl text-2xl font-mono text-green-400 outline-none uppercase shadow-2xl transition-all"
+              autoFocus
+            />
+            <button type="button" onClick={() => setIsScannerOpen(true)} className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-gray-800 rounded-xl text-green-500">
+              {/* Camera Icon SVG */}
+            </button>            
+            {loading && <div className="absolute right-6 top-1/2 -translate-y-1/2 animate-spin h-6 w-6 border-2 border-green-500 border-t-transparent rounded-full"></div>}
+          </form>
+          {error && <p className="text-red-500 text-center mt-4 font-bold uppercase text-xs tracking-widest">{error}</p>}
+        </div>
+
+        {asset && (
+          <div className="max-w-5xl mx-auto bg-gray-800 border border-gray-700 rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+            
+            {/* REFINED HEADER (No Print) */}
+            <div className="flex flex-col md:flex-row justify-between items-start border-b border-gray-800 pb-8 gap-6">
+              <div>
+                <h3 className="text-4xl font-black uppercase tracking-tight mb-2 leading-none text-white">
+                  {asset.asset_name}
+                </h3>
+                <div className="flex items-center gap-3">
+                  <p className="text-green-500 font-mono text-lg tracking-widest selection:bg-green-500 selection:text-black">
+                    {asset.serial_number}
+                  </p>
+                  {/* Simple copy button is more useful than a print button now */}
+                  <button 
+                    onClick={() => navigator.clipboard.writeText(asset.serial_number)}
+                    className="text-[10px] bg-gray-900 hover:bg-gray-700 text-gray-400 px-2 py-1 rounded uppercase border border-gray-700 transition-all"
+                  >
+                    Copy SN
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white p-3 rounded-2xl shadow-xl shadow-green-500/10">
+                <QRCodeSVG value={asset.serial_number} size={90} />
+              </div>
+            </div>
+
+            {/* MIDDLE SECTION: CUSTODY & TRIAGE */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-10">
+              
+              {/* CUSTODY BOX */}
+              <div className="space-y-4">
+                <p className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em]">Chain of Custody</p>
+                <div className="bg-black/40 border border-gray-700 p-6 rounded-2xl flex justify-between items-center group">
+                  <div>
+                    <p className="text-xs font-black uppercase text-white">{asset.User ? `${asset.User.rank} ${asset.User.first_name} ${asset.User.last_name}` : "UNASSIGNED / IN STORAGE"}</p>
+                    <p className="text-[8px] text-gray-600 font-mono mt-1 uppercase">{asset.User ? `ID: ${asset.user_id}` : "Warehouse Master Manifest"}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {asset.User && <button onClick={handleReturnToStorage} className="text-[9px] font-black bg-red-900/20 text-red-500 border border-red-500/30 px-4 py-2 rounded-lg uppercase hover:bg-red-600 transition-all">Return</button>}
+                    <button onClick={() => setShowAssignModal(true)} className="text-[9px] font-black bg-white text-black px-4 py-2 rounded-lg uppercase hover:bg-green-500 transition-all">{asset.User ? "Transfer" : "Issue"}</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* TRIAGE BOX */}
+              <div className="space-y-4">
+                <p className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em]">Quick Triage</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Workable', 'Under Repair', 'BER'].map(st => (
+                    <button key={st} onClick={() => updateStatus(asset.asset_id, st)}
+                      className={`py-3 rounded-xl text-[10px] font-black uppercase transition-all border ${asset.status === st ? 'bg-white text-black border-white' : 'bg-gray-900 text-gray-400 border-gray-700 hover:border-gray-500'}`}>{st}</button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* BOTTOM SECTION: MANIFEST */}
+            <div className="mt-12 pt-8 border-t border-gray-700">
+              <div className="flex justify-between items-center mb-6">
+                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Internal Manifest</h4>
+                <button onClick={openCompModal} className="text-[9px] font-black text-green-500 border border-green-500/30 px-3 py-1 rounded uppercase hover:bg-green-500 hover:text-black transition-all">+ Link Hardware</button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {components.map(comp => (
+                  <div key={comp.component_id} className="bg-black/30 border border-gray-800 p-4 rounded-xl flex justify-between items-center group">
+                    <div>
+                      <p className="text-xs font-bold uppercase">{comp.component_details}</p>
+                      <p className="text-[8px] text-gray-400 font-mono mt-1">{comp.ComponentType?.component_type_name} — ID: {comp.component_id}</p>
+                    </div>
+                    { currentUser.isAdmin && (
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                        <button onClick={() => handleHarvest(comp.component_id)} className="text-[8px] font-black text-blue-400 bg-blue-900/20 px-2 py-1 rounded uppercase border border-blue-500/20">Harvest</button>
+                        <button onClick={() => handleDispose(comp.component_id)} className="text-[8px] font-black text-red-500 bg-red-900/20 px-2 py-1 rounded uppercase border border-red-500/20">Dispose</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {components.length === 0 && <div className="col-span-2 py-10 text-center border-2 border-dashed border-gray-800 rounded-2xl text-[10px] text-gray-700 uppercase font-bold tracking-[0.5em]">No Internals Logged</div>}
+              </div>
+            </div>
+          </div>
+        )}
+        </>
+      ) : (
+        <div className="max-w-6xl mx-auto animate-in fade-in zoom-in-95 duration-300">
+          <div className="flex justify-between items-end mb-6">
+              <h3 className="text-xl font-black uppercase italic tracking-tighter">Global Registry</h3>
+              <p className="text-[10px] text-gray-500 font-bold uppercase">{allAssets.length} Units Logged</p>
+          </div>
+          <AssetTable 
+            assets={allAssets} 
+            onSelect={(sn) => {
+              setQuery(sn);
+              setViewMode('search');
+              handleSearch(null, sn);
+            }} 
+          />
+
+          {/* PAGINATION CONTROLS */}
+          <div className="mt-6 flex justify-between items-center bg-gray-900/50 p-4 rounded-2xl border border-gray-800">
+            <button disabled={pagination.current === 1} onClick={() => fetchAllAssets(pagination.current - 1)} className="text-[10px] font-black uppercase disabled:opacity-20">Prev</button>
+            <span className="text-[10px] font-mono">Page {pagination.current} / {pagination.total}</span>
+            <button disabled={pagination.current === pagination.total} onClick={() => fetchAllAssets(pagination.current + 1)} className="text-[10px] font-black uppercase disabled:opacity-20">Next</button>
+          </div>          
+        </div>        
       )}
+
+      {isScannerOpen && <ScannerOverlay onScanSuccess={handleScanResult} onClose={() => setIsScannerOpen(false)} />}
 
       {/* --- REGISTRATION MODAL --- */}
       {showAddModal && (
