@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 
-const LogisticalRequirement = sequelize.define('Logistical_Requirement_Record', {
+const LogisticalRequirement = sequelize.define('LogisticalRequirement', {
   logreq_id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
