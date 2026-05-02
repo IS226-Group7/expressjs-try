@@ -70,12 +70,12 @@ export default function Dashboard() {
       
       setAsset(data);
       const compRes = await api(`/api/assets/${data.asset_id}/components`);
-      setComponents(compRes);
+      setComponents(compRes || []); // Ensure it's always an array
 
     } catch (err) { 
        setError('Asset not found.'); 
        setAsset(null); 
-       setComponents(null);
+       setComponents([]); // Set to empty array instead of null
     } finally { 
       setLoading(false); 
     }
@@ -285,10 +285,12 @@ export default function Dashboard() {
                     <p className="text-xs font-bold uppercase">{comp.component_details}</p>
                     <p className="text-[8px] text-gray-400 font-mono mt-1">{comp.ComponentType?.component_type_name} — ID: {comp.component_id}</p>
                   </div>
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                    <button onClick={() => handleHarvest(comp.component_id)} className="text-[8px] font-black text-blue-400 bg-blue-900/20 px-2 py-1 rounded uppercase border border-blue-500/20">Harvest</button>
-                    <button onClick={() => handleDispose(comp.component_id)} className="text-[8px] font-black text-red-500 bg-red-900/20 px-2 py-1 rounded uppercase border border-red-500/20">Dispose</button>
-                  </div>
+                  { currentUser.isAdmin && (
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                      <button onClick={() => handleHarvest(comp.component_id)} className="text-[8px] font-black text-blue-400 bg-blue-900/20 px-2 py-1 rounded uppercase border border-blue-500/20">Harvest</button>
+                      <button onClick={() => handleDispose(comp.component_id)} className="text-[8px] font-black text-red-500 bg-red-900/20 px-2 py-1 rounded uppercase border border-red-500/20">Dispose</button>
+                    </div>
+                  )}
                 </div>
               ))}
               {components.length === 0 && <div className="col-span-2 py-10 text-center border-2 border-dashed border-gray-800 rounded-2xl text-[10px] text-gray-700 uppercase font-bold tracking-[0.5em]">No Internals Logged</div>}
