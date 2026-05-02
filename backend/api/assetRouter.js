@@ -124,6 +124,18 @@ router.get('/:assetId/components', verifyToken, async (req, res) => {
   }
 });
 
+// GET assets for a specific user
+router.get('/equipment-list/:id', verifyToken, async (req, res) => {
+  try {
+    const assets = await Asset.findAll({
+      where: { user_id: req.params.id },
+    });
+    res.json(assets);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to retrieve internal manifest." });
+  }
+});
+
 // PUT: Assign Asset to Personnel
 router.put('/assign', verifyToken, verifyAdminStatus, async (req, res) => {
   try {
