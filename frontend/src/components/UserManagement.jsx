@@ -66,14 +66,18 @@ export default function UserManagement() {
         <div className="flex justify-between items-end mb-8 border-b border-gray-800 pb-6">
           <div>
             <h1 className="text-3xl font-black tracking-tighter uppercase text-white">Personnel Registry</h1>
-            <p className="text-[10px] text-green-500 font-mono tracking-widest mt-1 italic">Authorized Admin Session</p>
+            <p className="text-[10px] text-green-500 font-mono tracking-widest mt-1 italic">
+              { currentUser.isAdmin ? ("Authorized Admin Session") : ("UNAUTHORIZED")}
+            </p>
           </div>
-          <button 
-            onClick={() => setShowModal(true)}
-            className="bg-green-600 hover:bg-green-400 text-black px-6 py-2 rounded font-black text-xs transition-all uppercase"
-          >
-            + Onboard Operator
-          </button>
+          { currentUser.isAdmin && (
+            <button 
+              onClick={() => setShowModal(true)}
+              className="bg-green-600 hover:bg-green-400 text-black px-6 py-2 rounded font-black text-xs transition-all uppercase"
+            >
+              + Onboard Operator
+            </button>
+          )}
         </div>
 
         {/* Data Table */}

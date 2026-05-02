@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../utils/api.js';
 
 export default function Dashboard() {
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const navigate = useNavigate();
 
   // --- GLOBAL STATE ---
@@ -193,7 +194,9 @@ export default function Dashboard() {
       {/* HEADER */}
       <div className="flex justify-between items-center max-w-5xl mx-auto mb-10 border-b border-gray-800 pb-6">
         <h2 className="text-2xl font-black uppercase tracking-tighter italic">Command <span className="text-green-500">Center</span></h2>
-        <button onClick={() => setShowAddModal(true)} className="bg-green-600 hover:bg-green-500 text-black px-6 py-2 rounded-lg font-black text-[10px] uppercase transition-all shadow-lg shadow-green-900/20">+ Register Asset</button>
+        { currentUser.isAdmin && (
+          <button onClick={() => setShowAddModal(true)} className="bg-green-600 hover:bg-green-500 text-black px-6 py-2 rounded-lg font-black text-[10px] uppercase transition-all shadow-lg shadow-green-900/20">+ Register Asset</button>
+        )}
       </div>
 
       {/* SEARCH BOX */}
@@ -301,14 +304,17 @@ export default function Dashboard() {
             <h3 className="text-xl font-black mb-6 uppercase italic text-green-500 tracking-tighter">New Hardware Entry</h3>
             <input type="text" placeholder="MODEL NAME (e.g. MacBook Pro)" className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-sm outline-none focus:border-green-500" value={formData.assetName} onChange={e => setFormData({...formData, assetName: e.target.value})} required />
             <input type="text" placeholder="SERIAL NUMBER" className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-sm font-mono outline-none focus:border-green-500" value={formData.serialNumber} onChange={e => setFormData({...formData, serialNumber: e.target.value})} required />
-            <select className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-xs font-bold uppercase" value={formData.categoryId} onChange={e => setFormData({...formData, category_id: e.target.value})}>
+            <select className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-xs font-bold uppercase" 
+              value={formData.categoryId} 
+              onChange={e => setFormData({...formData, categoryId: e.target.value})} // Fixed key name
+            >
               {categories.map(cat => <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>)}
             </select>
             <div className="flex gap-2 pt-4">
               <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-4 bg-gray-700 rounded-xl font-bold text-[10px] uppercase">Cancel</button>
               <button type="submit" className="flex-1 py-4 bg-green-600 text-black rounded-xl font-black text-[10px] uppercase">Save to Registry</button>
             </div>
-          </form>
+        </form>
         </div>
       )}
 
