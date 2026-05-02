@@ -24,7 +24,7 @@ const Layout = ({ children }) => {
               ITAM<span className="text-green-500">ENGINE</span>
             </h1>
             <div className="flex gap-6">
-              <Link to="/dashboard" className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-green-500 transition-all">Scanner</Link>
+              <Link to="/dashboard" className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-green-500 transition-all">Equipment</Link>
               <Link to="/admin/users" className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-green-500 transition-all">Personnel</Link>
             </div>
           </div>
