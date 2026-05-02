@@ -274,4 +274,31 @@ router.get('/components/available', verifyToken, verifyAdminStatus, async (req, 
   }
 });
 
+router.get('/list', async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 25);
+    const offset = (page - 1) * limit;
+
+    // Split the calls to avoid the internal "query.run" crash
+    const count = await Asset.count();
+    const rows = await Asset.findAll({
+      limit,
+      offset,
+      order: [['asset_id', 'DESC']],
+      include: [Category, User]
+    });
+
+    res.json({
+      assets: rows,
+      totalPages: Math.ceil(count / limit),
+      totalItems: count,
+      currentPage: page
+    });
+  } catch (err) {
+    console.error("MariaDB Pagination Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
