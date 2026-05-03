@@ -3,13 +3,11 @@ import { api } from '../utils/api.js';
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
-  const [equipmentList, setEquipmentList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
   // Modal & Form State
   const [showModal, setShowModal] = useState(false);
-  const [showEquipmentListModal, setShowEquipmentListModal] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', rank: 'CIV', 
     username: '', password: '', adminFlag: false
@@ -32,22 +30,6 @@ export default function UserManagement() {
       setLoading(false);
     }
   };
-
-  const fetchEquipment = async (userId) => {
-    setLoading(true);
-    try {
-      const list = await api(`/api/assets/equipment-list/${userId}`, {
-        method: 'GET'
-      })
-
-      setEquipmentList(list);
-      setShowEquipmentListModal(true);
-    } catch (err) {
-      alert("Unable to get equipment information");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
@@ -124,16 +106,10 @@ export default function UserManagement() {
                     </span>
                   </td>
                   <td className="p-4 text-right">
-                      <button 
-                        onClick={() => fetchEquipment(user.userAccount_id)}
-                        className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-widest disabled:opacity-30 mr-4 cursor-pointer"
-                      >
-                        View Equipment
-                      </button>
                     {user.userAccount_id !== currentUser.id ? (
                       <button 
                         onClick={() => handleDeactivate(user.userAccount_id)}
-                        className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-widest disabled:opacity-30 cursor-pointer"
+                        className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-widest disabled:opacity-30"
                         disabled={user.status !== 'active'}
                       >
                         Deactivate
@@ -179,45 +155,10 @@ export default function UserManagement() {
                 </label>
 
                 <div className="flex gap-2 pt-6 border-t border-gray-700">
-                  <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded font-bold text-xs cursor-pointer">CANCEL</button>
-                  <button type="submit" className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-black rounded font-black text-xs uppercase tracking-widest cursor-pointer">Authorize</button>
+                  <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded font-bold text-xs">CANCEL</button>
+                  <button type="submit" className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-black rounded font-black text-xs uppercase tracking-widest">Authorize</button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {/* Equipment List Modal */}
-        {showEquipmentListModal && (
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-gray-800 border border-gray-700 p-8 rounded-2xl w-full max-w-md shadow-2xl">
-              <h2 className="text-xl font-black text-white mb-6 uppercase tracking-tighter">Equipment List</h2>
-              <table className="space-y-4 w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-900/50 text-[10px] uppercase tracking-widest text-gray-500 border-b border-gray-700">
-                    <th className="p-2 font-bold">Asset ID</th>
-                    <th className="p-2 font-bold">Asset Tag</th>
-                    <th className="p-2 font-bold">Serial Number</th>
-                    <th className="p-2 font-bold">Asset Name</th>
-                    <th className="p-2 font-bold">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {equipmentList.map((item) => (
-                    <tr className='text-[10px]'>
-                      <td className="p-2 text-white uppercase tracking-tight">{item.asset_id}</td>
-                      <td className="p-2 text-white uppercase tracking-tight">{item.asset_tag}</td>
-                      <td className="p-2 text-white uppercase tracking-tight">{item.serial_number}</td>
-                      <td className="p-2 text-white uppercase tracking-tight">{item.asset_name}</td>
-                      <td className="p-2 text-white uppercase tracking-tight">{item.status}</td>
-                    </tr>
-                  ))}
-                  <tr></tr>
-                </tbody>
-              </table>
-              <div className="flex gap-2 pt-6 border-t border-gray-700">
-                <button type="button" onClick={() => setShowEquipmentListModal(false)} className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded font-bold text-xs cursor-pointer">CLOSE</button>
-              </div>
             </div>
           </div>
         )}
