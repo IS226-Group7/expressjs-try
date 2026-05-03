@@ -315,8 +315,8 @@ export default function Dashboard() {
             {/* BOTTOM SECTION: MANIFEST */}
             <div className="mt-12 pt-8 border-t border-gray-700">
               <div className="flex justify-between items-center mb-6">
-                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Internal Manifest</h4>
-                <button onClick={openCompModal} className="text-[9px] font-black text-green-500 border border-green-500/30 px-3 py-1 rounded uppercase hover:bg-green-500 hover:text-black transition-all">+ Link Hardware</button>
+                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Internal Components List"</h4>
+                <button onClick={openCompModal} className="text-[9px] font-black text-green-500 border border-green-500/30 px-3 py-1 rounded uppercase hover:bg-green-500 hover:text-black transition-all">+ Add Component</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {components.map(comp => (
