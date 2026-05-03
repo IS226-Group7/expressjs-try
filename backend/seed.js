@@ -13,7 +13,7 @@ import {
 } from './models/index.js';
 import ComponentType from './models/Component_Type_Record.js';
 
-export const seedAdmin = async () => {
+const seedAdmin = async () => {
   try {
     // 1. Test Connection
     await sequelize.authenticate();
@@ -178,12 +178,11 @@ export const seedAdmin = async () => {
     });
 
 
-    console.log('-----------------------------------');
-    return { status: 'success', message: 'Seeding completed' }; 
+    process.exit(0);
   } catch (error) {
     console.error('❌ Seeding failed:', error);
-    throw error; // Let Lambda handle the error state
+    process.exit(1);
   }
 };
 
-// seedAdmin();
+seedAdmin();
