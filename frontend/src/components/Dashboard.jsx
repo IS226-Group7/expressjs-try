@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../utils/api.js';
 import ScannerOverlay from './ScannerOverlay';
 import AssetTable from './AssetTable';
+import AuditTable from './AuditTable';
 
 export default function Dashboard() {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -12,6 +13,7 @@ export default function Dashboard() {
   // --- GLOBAL STATE ---
   const [query, setQuery] = useState('');
   const [asset, setAsset] = useState(null);
+  const [detailAssetId, setDetailAssetId] = useState(null);
   const [categories, setCategories] = useState([]);
   const [compTypes, setCompTypes] = useState([]);
   const [personnelList, setPersonnelList] = useState([]);
@@ -25,6 +27,8 @@ export default function Dashboard() {
   const [showCompModal, setShowCompModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [activeTab, setActiveTab] = useState('new'); // 'new' vs 'inventory'
+  const [assetActiveTab, setAssetActiveTab] = useState('details'); // 'details', 'components', 'history'
+  const [history, setHistory] = useState([]);
 
   // --- FORM STATES ---
   const [formData, setFormData] = useState({ assetName: '', serialNumber: '', categoryId: '', status: 'Workable' });
@@ -59,6 +63,23 @@ export default function Dashboard() {
     };
     syncData();
   }, []);
+
+  // --- HISTORY LOGIC ---
+  useEffect(() => {
+    if (assetActiveTab === 'history' && detailAssetId) {
+      fetchHistory();
+    }
+  }, [assetActiveTab, detailAssetId]);
+
+  const fetchHistory = async () => {
+    try {
+      const data = await api(`/api/audit/asset-history/${detailAssetId}`);
+      setHistory(data);
+    } catch (err) {
+      console.error("Audit fetch failed", err);
+      setHistory(null);
+    }
+  };
 
   const fetchAllAssets = async (page = 1) => {
     setLoading(true);
@@ -96,12 +117,16 @@ export default function Dashboard() {
       const data = await api(`/api/assets/search?q=${searchVal}`);
       
       setAsset(data);
+      setDetailAssetId(data.asset_id);
+      setHistory([]);
+      setAssetActiveTab('details');
       const compRes = await api(`/api/assets/${data.asset_id}/components`);
       setComponents(compRes || []); // Ensure it's always an array
 
     } catch (err) { 
        setError('Asset not found.'); 
        setAsset(null); 
+       setDetailAssetId(null);
        setComponents([]); // Set to empty array instead of null
     } finally { 
       setLoading(false); 
@@ -133,6 +158,7 @@ export default function Dashboard() {
         body: { id: assetId, status: newStatus }
       });
       setAsset(prev => ({ ...prev, status: newStatus }));
+      fetchHistory();
       if (newStatus === 'BER') handleReturnToStorage();
     } catch (err) { alert("Status update failed."); }
   };
@@ -281,6 +307,23 @@ export default function Dashboard() {
               </div>
             </div>
 
+            <div className="flex space-x-4 border-b border-gray-800 mb-6">
+              {['details', 'history'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setAssetActiveTab(tab)}
+                  className={`pb-2 px-1 text-xs font-bold uppercase tracking-widest transition-all ${
+                    assetActiveTab === tab 
+                      ? 'border-b-2 border-green-500 text-white' 
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            { assetActiveTab === 'details' ? (<>
             {/* MIDDLE SECTION: CUSTODY & TRIAGE */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-10">
               
@@ -315,8 +358,8 @@ export default function Dashboard() {
             {/* BOTTOM SECTION: MANIFEST */}
             <div className="mt-12 pt-8 border-t border-gray-700">
               <div className="flex justify-between items-center mb-6">
-                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Internal Manifest</h4>
-                <button onClick={openCompModal} className="text-[9px] font-black text-green-500 border border-green-500/30 px-3 py-1 rounded uppercase hover:bg-green-500 hover:text-black transition-all">+ Link Hardware</button>
+                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Internal Components List"</h4>
+                <button onClick={openCompModal} className="text-[9px] font-black text-green-500 border border-green-500/30 px-3 py-1 rounded uppercase hover:bg-green-500 hover:text-black transition-all">+ Add Component</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {components.map(comp => (
@@ -336,6 +379,7 @@ export default function Dashboard() {
                 {components.length === 0 && <div className="col-span-2 py-10 text-center border-2 border-dashed border-gray-800 rounded-2xl text-[10px] text-gray-700 uppercase font-bold tracking-[0.5em]">No Internals Logged</div>}
               </div>
             </div>
+            </>) : ( <AuditTable logs={history} /> ) }
           </div>
         )}
         </>

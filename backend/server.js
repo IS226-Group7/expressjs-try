@@ -47,6 +47,7 @@ app.get('/api/test-db', async (req, res) => {
 // 1. IMPORT ROUTERS 
 import authRouter from './api/authRouter.js';
 import assetRouter from './api/assetRouter.js';
+import auditRouter from './api/auditRouter.js';
 
 app.use(express.json());
 
@@ -54,5 +55,6 @@ app.use(express.json());
 // These MUST come before the static files/catch-all
 app.use('/api/auth', authRouter);
 app.use('/api/assets', assetRouter);
+app.use('/api/audit', auditRouter);
 
 export const handler = serverless(app);
