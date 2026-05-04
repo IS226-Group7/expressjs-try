@@ -1,19 +1,57 @@
 import express, { Router } from 'express';
-import { Asset, Category, Component, ComponentType, ComponentHistory, User } from '../models/index.js';
+import { 
+  Asset, 
+  Category, 
+  Component, 
+  ComponentType, 
+  ComponentHistory, 
+  User,
+  History 
+} from '../models/index.js';
 import sequelize from '../config/database.js';
 import { verifyToken } from '../middleware/auth.js';
 import { verifyAdminStatus } from '../helpers/admin.js';
 import { Op } from 'sequelize'; // Necessary for "LIKE" queries
 
-
-// Import Sequelize models or DB config here
-
 const router = express.Router();
 
+const logHistory = async ({ 
+  assetId, 
+  newStatus, 
+  userId, 
+  toPersonnel = null
+}, transaction = null) => {
+  try {
+    const logEntry = {
+      asset_id: assetId,
+      toStatus: newStatus,
+      changed_by: userId,
+      toPerson: toPersonnel ?? 0,
+      change_date: new Date()
+    };
+
+    // If a transaction is passed, use it. Otherwise, create a standard record.
+    return await History.create(logEntry, transaction ? { transaction } : null);
+  } catch (error) {
+    console.error("Critical: Failed to write to StatusHistory table", error);
+    // We throw the error so the parent function knows the history log failed
+    throw error;
+  }
+};
+
 router.put('/update-status', verifyToken, verifyAdminStatus, async (req, res) => {
+  const t = await sequelize.transaction(); // Start transaction
   try {
     const { id, status } = req.body;
     await Asset.update({ status }, { where: { 'asset_id' : id } });
+    
+    await logHistory({
+      assetId: id,
+      newStatus: status,
+      userId: req.user.userAccountId
+    }, t );
+
+    await t.commit(); // Save all changes
     res.json({ message: "Status updated successfully." });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -41,6 +79,12 @@ router.post('/create', verifyToken, verifyAdminStatus, async(req, res) => {
       category_id: category_id,
       status: status
     }, { transaction: t });
+
+    await logHistory({
+      assetId: newAsset.asset_id,
+      newStatus: "Created",
+      userId: req.user.userAccountId
+    }, t );
 
     await t.commit(); // Save all changes
     res.json({ message: "Asset entry created." });
@@ -144,6 +188,14 @@ router.put('/assign', verifyToken, verifyAdminStatus, async (req, res) => {
       { user_id: personnelId }, 
       { where: { asset_id: assetId } }
     );
+
+    await logHistory({
+      assetId: assetId,
+      newStatus: "Assigned",
+      userId: req.user.userAccountId,
+      toPersonnel: personnelId
+    });
+
     res.json({ message: "Asset successfully assigned." });
   } catch (err) {
     res.status(500).json({ error: "Failed to update custody." });
@@ -168,6 +220,13 @@ router.put('/return-to-storage', verifyToken, verifyAdminStatus, async (req, res
       { user_id: null }, 
       { where: { asset_id: assetId } }
     );
+
+    await logHistory({
+      assetId: assetId,
+      newStatus: "Return to Storage",
+      userId: req.user.userAccountId,
+    });
+
     res.json({ message: "Asset returned to storage; custody cleared." });
   } catch (err) {
     res.status(500).json({ error: "Failed to clear assignment." });

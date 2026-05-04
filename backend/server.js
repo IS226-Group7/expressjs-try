@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 // 1. IMPORT ROUTERS 
 import authRouter from './api/authRouter.js';
 import assetRouter from './api/assetRouter.js';
+import auditRouter from './api/auditRouter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -16,6 +17,7 @@ app.use(express.json());
 // These MUST come before the static files/catch-all
 app.use('/api/auth', authRouter);
 app.use('/api/assets', assetRouter);
+app.use('/api/audit', auditRouter);
 
 // 3. STATIC FILES (The Built Frontend)
 // This serves your JS, CSS, and Images from the frontend/dist folder

@@ -64,6 +64,28 @@ LogisticalRequirement.belongsTo(User, { foreignKey: 'requested_by', as: 'Request
 User.hasMany(Asset, {foreignKey: 'user_id'});
 Asset.belongsTo(User, {foreignKey: 'user_id'});
 
+User.hasMany(History, {
+  as: "Recipient",
+  foreignKey: 'toPerson',
+  sourceKey: 'user_id'
+});
+User.hasMany(History, {
+  as: "ModifiedBy",
+  foreignKey: 'changed_by',
+  sourceKey: 'user_id'
+});
+
+History.belongsTo(User, {
+  as: 'Recipient',  
+  foreignKey: 'toPerson',
+  targetKey: 'user_id'
+});
+History.belongsTo(User, {
+  as: 'ModifiedBy',  
+  foreignKey: 'changed_by',
+  targetKey: 'user_id'
+});
+
 export {
   sequelize,
   Asset,
