@@ -44,6 +44,15 @@ export const seedAdmin = async () => {
       }
     });
 
+    const [newHuman2] = await User.findOrCreate({
+      where: { payslip_account_number: '0' },
+      defaults: {
+        rank: 'Admin',
+        last_name: 'None',
+        first_name: ' '
+      }
+    });
+
     // 5. Create the Login Account (The "Credentials")
     const hashedPassword = await bcrypt.hash('Admin123!', 10);
     const [newAccount] = await UserAccount.findOrCreate({
