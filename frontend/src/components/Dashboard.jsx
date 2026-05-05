@@ -137,6 +137,9 @@ export default function Dashboard() {
   const handleCreateAsset = async (e) => {
     e.preventDefault();
     try {
+      // check serial no. first
+      const checker = await api(`/api/assets/check-serial/${formData.serialNumber}`);
+
       const res = await api('/api/assets/create', {
         method: 'POST',
         body: {
@@ -148,7 +151,9 @@ export default function Dashboard() {
       });
       setShowAddModal(false);
       handleSearch(null, formData.serialNumber);
-    } catch (err) { alert("Registration failed."); }
+    } catch (err) {
+      alert("Registration failed, " + err.message); 
+    }
   };
 
   const updateStatus = async (assetId, newStatus) => {
@@ -180,8 +185,11 @@ export default function Dashboard() {
         method: 'PUT',
         body: { assetId: asset.asset_id, personnelId: selectedUser }
       });
-      setShowAssignModal(false); handleSearch(null, asset.asset_id);
-    } catch (err) { alert("Assignment failed."); }
+      setShowAssignModal(false); 
+      handleSearch(null, asset.serial_number);
+    } catch (err) { 
+      alert("Assignment failed."); 
+    }
   };
 
   // --- COMPONENT ACTIONS ---
@@ -221,14 +229,14 @@ export default function Dashboard() {
   };
 
   const handleHarvest = async (compId) => {
-    if (!window.confirm("Harvest part to stock?")) return;
+    if (!window.confirm("Remove component from Asset<br/>and bring to Stock Room?")) return;
     try {
       const res = await api('/api/assets/harvest-component', {
         method: 'PUT',
         body: { componentId: compId }
       });
       setComponents(prev => prev.filter(c => c.component_id !== compId));
-    } catch (err) { alert("Harvest failure."); }
+    } catch (err) { alert("Component removal failure."); }
   };
 
   const handleDispose = async (compId) => {
@@ -370,7 +378,7 @@ export default function Dashboard() {
                     </div>
                     { currentUser.isAdmin && (
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                        <button onClick={() => handleHarvest(comp.component_id)} className="text-[8px] font-black text-blue-400 bg-blue-900/20 px-2 py-1 rounded uppercase border border-blue-500/20">Harvest</button>
+                        <button onClick={() => handleHarvest(comp.component_id)} className="text-[8px] font-black text-blue-400 bg-blue-900/20 px-2 py-1 rounded uppercase border border-blue-500/20">Remove/Disconnect</button>
                         <button onClick={() => handleDispose(comp.component_id)} className="text-[8px] font-black text-red-500 bg-red-900/20 px-2 py-1 rounded uppercase border border-red-500/20">Dispose</button>
                       </div>
                     )}
@@ -471,14 +479,14 @@ export default function Dashboard() {
             ) : (
               <form onSubmit={handleRelink} className="space-y-4">
                 <select className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-xs font-bold uppercase" value={selectedHarvestedId} onChange={e => setSelectedHarvestedId(e.target.value)} required>
-                  <option value="">-- SELECT HARVESTED PART --</option>
+                  <option value="">-- SELECT AVAILABLE PART --</option>
                   {availableParts.map(p => <option key={p.component_id} value={p.component_id}>[{p.ComponentType?.component_type_name}] {p.component_details}</option>)}
                 </select>
                 {availableParts.length === 0 && <p className="text-center text-[9px] text-yellow-500 font-bold uppercase py-2 tracking-widest">Spare Stock is Empty</p>}
                 <button type="submit" className="w-full py-4 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase" disabled={!selectedHarvestedId}>Install from Stock</button>
               </form>
             )}
-            <button type="button" onClick={() => setShowCompModal(false)} className="w-full mt-4 text-[9px] text-gray-500 font-bold uppercase">Back to Chassis</button>
+            <button type="button" onClick={() => setShowCompModal(false)} className="w-full mt-4 text-[9px] text-gray-500 font-bold uppercase">Close</button>
           </div>
         </div>
       )}

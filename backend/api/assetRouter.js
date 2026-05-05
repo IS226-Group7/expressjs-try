@@ -94,6 +94,25 @@ router.post('/create', verifyToken, verifyAdminStatus, async(req, res) => {
   }
 });
 
+router.get('/check-serial/:serialNo', verifyToken, verifyAdminStatus, async (req, res) => {
+  try {
+    if (!req.params.serialNo) {
+      return res.status(400).json({ message: "Serial No. is required." });
+    }
+    const asset = await Asset.findOne({
+        where: { serial_number: req.params.serialNo }
+    });
+
+    if (asset) {
+      return res.status(404).json({ message: "Existing asset with a matching serial no.!" });
+    }
+    res.json({check: "available"});
+  } catch (err) {
+    console.error("Search Error:", err);
+    res.status(500).json({ error: "Internal engine failure during search." });
+  }
+});
+
 // --- ROUTE: SEARCH ASSETS ---
 router.get('/search', verifyToken, async (req, res) => {
   try {
