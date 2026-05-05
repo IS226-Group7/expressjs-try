@@ -22,7 +22,7 @@ const Layout = ({ children }) => {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-10">
             <h1 className="text-xl font-black text-white tracking-tighter">
-              ITAM<span className="text-green-500">ENGINE</span>
+              PNP TS<span className="text-green-500">ITAIMS</span>
             </h1>
             <div className="flex gap-6">
               <Link to="/dashboard" className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-green-500 transition-all">Equipment</Link>
@@ -39,6 +39,9 @@ const Layout = ({ children }) => {
             </button>
           </div>
         </div>
+        <p className="mt-8 text-center text-[9px] text-gray-600 uppercase tracking-widest">
+          Argote, Ian Benedict ✶ Mercado, Christian Bernard ✶ Mora, Charmaine Joy ✶ Servo, Marlodel ✶ Silang, Rhennel
+        </p>
       </nav>
 
       {/* Actual Page Content */}
