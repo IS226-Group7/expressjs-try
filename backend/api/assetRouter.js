@@ -26,7 +26,7 @@ const logHistory = async ({
       asset_id: assetId,
       toStatus: newStatus,
       changed_by: userId,
-      toPerson: toPersonnel ?? 0,
+      toPerson: toPersonnel === 0 ? null : toPersonnel, // Use NULL instead of 0
       change_date: new Date()
     };
 
