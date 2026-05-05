@@ -44,10 +44,10 @@ export default function Login() {
         {/* Visual Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-black tracking-tighter text-white">
-            ITAM<span className="text-green-500">SYSTEM</span>
+            PNP TS<span className="text-green-500">ITAIMS</span>
           </h1>
           <p className="text-[10px] uppercase tracking-[0.4em] text-gray-500 font-bold mt-2">
-            Secure Asset Logistics
+            IT Asset and Inventory Management Service
           </p>
         </div>
 
@@ -95,9 +95,9 @@ export default function Login() {
             </button>
           </form>
         </div>
-
+        <p className="mt-8 text-center text-[20px] text-gray-600 uppercase tracking-widest">IS226 WIS 007</p>
         <p className="mt-8 text-center text-[9px] text-gray-600 uppercase tracking-widest">
-          Authorized Personnel Only // Session Monitored
+          Argote, Ian Benedict ✶ Mercado, Christian Bernard ✶ Mora, Charmaine Joy ✶ Servo, Marlodel ✶ Silang, Rhennel
         </p>
       </div>
     </div>
