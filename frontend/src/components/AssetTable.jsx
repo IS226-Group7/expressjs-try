@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * AssetTable Component
  * @param {Array} assets - The array of asset objects from the paginated backend response

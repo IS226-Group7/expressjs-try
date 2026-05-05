@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-ro
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import UserManagement from './components/UserManagement';
+import Reports from './components/Reports';
 
 // The Layout creates the persistent Top Navigation Bar
 const Layout = ({ children }) => {
@@ -26,6 +27,7 @@ const Layout = ({ children }) => {
             <div className="flex gap-6">
               <Link to="/dashboard" className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-green-500 transition-all">Equipment</Link>
               <Link to="/admin/users" className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-green-500 transition-all">Personnel</Link>
+              <Link to="/reports" className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-green-500 transition-all">Reports</Link>
             </div>
           </div>
           <div className="flex items-center gap-6">
@@ -67,6 +69,12 @@ export default function App() {
         <Route path="/admin/users" element={
           <ProtectedRoute>
             <Layout><UserManagement /></Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/reports" element={
+          <ProtectedRoute>
+            <Layout><Reports /></Layout>
           </ProtectedRoute>
         } />
 

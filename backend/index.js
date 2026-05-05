@@ -48,6 +48,7 @@ app.get('/api/test-db', async (req, res) => {
 import authRouter from './api/authRouter.js';
 import assetRouter from './api/assetRouter.js';
 import auditRouter from './api/auditRouter.js';
+import reportRouter from './api/reportRouter.js';
 
 app.use(express.json());
 
@@ -56,5 +57,6 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/assets', assetRouter);
 app.use('/api/audit', auditRouter);
+app.use('/api/reports', reportRouter);
 
 export const handler = serverless(app);
