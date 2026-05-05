@@ -150,6 +150,7 @@ export default function Dashboard() {
         }
       });
       setShowAddModal(false);
+      setViewMode('search');
       handleSearch(null, formData.serialNumber);
     } catch (err) {
       alert("Registration failed, " + err.message); 
