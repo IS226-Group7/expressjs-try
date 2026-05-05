@@ -176,6 +176,12 @@ const seedAdmin = async () => {
         description: 'Fast storage device',
       }
     });
+    const [compo10] = await ComponentType.findOrCreate({
+      where: { component_type_name: 'Optical Drive' },
+      defaults: {
+        description: 'For CD/DVD',
+      }
+    });
 
 
     process.exit(0);
