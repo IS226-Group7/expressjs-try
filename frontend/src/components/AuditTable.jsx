@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function AuditTable ({ logs }) {
   return (
     <div className="mt-4 overflow-hidden rounded-lg border border-gray-800 bg-[#111]">
